@@ -1,0 +1,365 @@
+@import "tailwindcss";
+
+/*
+ * HandiMart web design tokens. Values are the app's (the shared mobile design system): the brand
+ * palette Orange / Plum / Sand / Paper, semantic roles that flip for dark mode, the radius scale
+ * and motion timings. Components use the semantic names only (bg-paper, text-ink, ...), never hex.
+ */
+:root {
+  --hm-paper: #f8f1e5;
+  --hm-surface: #fffaf2;
+  --hm-surface-raised: #fffdf9;
+  --hm-surface-sunken: #f1e3c9;
+  --hm-field: #f3e8d6;
+  --hm-ink: #2a1330;
+  --hm-ink-2: #604d5f;
+  --hm-ink-3: #786775;
+  --hm-primary: #e06e2d;
+  --hm-primary-pressed: #b8531c;
+  --hm-on-primary: #2a1330;
+  --hm-primary-container: #fbe3d2;
+  --hm-on-primary-container: #7a3410;
+  --hm-secondary: #3d1d46;
+  --hm-on-secondary: #f8f1e5;
+  --hm-on-secondary-accent: #e9d2a8;
+  --hm-secondary-container: #eee0ec;
+  --hm-accent: #e9d2a8;
+  --hm-accent-text: #a84a17;
+  --hm-pebble: #e9d2a8;
+  --hm-border: #ded3cf;
+  --hm-border-strong: #cbbebf;
+  --hm-divider: #e9e0d8;
+  --hm-success: #2f7a4b;
+  --hm-success-container: #dcefe2;
+  --hm-warning: #9a6200;
+  --hm-warning-container: #fbebcb;
+  --hm-error: #b42318;
+  --hm-error-container: #fbe4e1;
+  --hm-info: #2f5e86;
+  --hm-info-container: #dfeaf3;
+  --hm-rating: #c8922a;
+  --hm-scrim: rgb(42 19 48 / 0.5);
+  --hm-inverse: #2a1330;
+  --hm-on-inverse: #f8f1e5;
+  --hm-grain-opacity: 0.05;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+    --hm-paper: #150a18;
+    --hm-surface: #1e0f22;
+    --hm-surface-raised: #2a1330;
+    --hm-surface-sunken: #120815;
+    --hm-field: #241428;
+    --hm-ink: #fbf5ea;
+    --hm-ink-2: #bbb3af;
+    --hm-ink-3: #968e8e;
+    --hm-primary: #e06e2d;
+    --hm-primary-pressed: #f28a4c;
+    --hm-on-primary: #150a18;
+    --hm-primary-container: #4a2210;
+    --hm-on-primary-container: #ffd2b5;
+    --hm-secondary: #e9d2a8;
+    --hm-on-secondary: #150a18;
+    --hm-on-secondary-accent: #a8431a;
+    --hm-secondary-container: #3a2340;
+    --hm-accent: #e9d2a8;
+    --hm-accent-text: #f28a4c;
+  --hm-pebble: #3a2340;
+    --hm-border: #362c38;
+    --hm-border-strong: #4d454f;
+    --hm-divider: #281e2a;
+    --hm-success: #8fd1a3;
+    --hm-success-container: #16351f;
+    --hm-warning: #f1c06b;
+    --hm-warning-container: #3b2a08;
+    --hm-error: #ff9b8f;
+    --hm-error-container: #4a1612;
+    --hm-info: #9cc3e6;
+    --hm-info-container: #162a3b;
+    --hm-rating: #e9b85a;
+    --hm-scrim: rgb(0 0 0 / 0.7);
+    --hm-inverse: #f8f1e5;
+    --hm-on-inverse: #150a18;
+    --hm-grain-opacity: 0.07;
+    color-scheme: dark;
+}
+
+@theme inline {
+  --color-paper: var(--hm-paper);
+  --color-surface: var(--hm-surface);
+  --color-surface-raised: var(--hm-surface-raised);
+  --color-surface-sunken: var(--hm-surface-sunken);
+  --color-field: var(--hm-field);
+  --color-ink: var(--hm-ink);
+  --color-ink-2: var(--hm-ink-2);
+  --color-ink-3: var(--hm-ink-3);
+  --color-primary: var(--hm-primary);
+  --color-primary-pressed: var(--hm-primary-pressed);
+  --color-on-primary: var(--hm-on-primary);
+  --color-primary-container: var(--hm-primary-container);
+  --color-on-primary-container: var(--hm-on-primary-container);
+  --color-secondary: var(--hm-secondary);
+  --color-on-secondary: var(--hm-on-secondary);
+  --color-on-secondary-accent: var(--hm-on-secondary-accent);
+  --color-secondary-container: var(--hm-secondary-container);
+  --color-accent: var(--hm-accent);
+  --color-accent-text: var(--hm-accent-text);
+  --color-line: var(--hm-border);
+  --color-line-strong: var(--hm-border-strong);
+  --color-divider: var(--hm-divider);
+  --color-success: var(--hm-success);
+  --color-success-container: var(--hm-success-container);
+  --color-warning: var(--hm-warning);
+  --color-warning-container: var(--hm-warning-container);
+  --color-error: var(--hm-error);
+  --color-error-container: var(--hm-error-container);
+  --color-info: var(--hm-info);
+  --color-info-container: var(--hm-info-container);
+  --color-rating: var(--hm-rating);
+  --color-scrim: var(--hm-scrim);
+  --color-inverse: var(--hm-inverse);
+  --color-on-inverse: var(--hm-on-inverse);
+  /* Fixed brand constants, for brand assets only (logo, night lightbox). */
+  --color-brand-orange: #e06e2d;
+  --color-brand-plum: #3d1d46;
+  --color-brand-sand: #e9d2a8;
+  --color-brand-night: #150a18;
+}
+
+@theme {
+  --font-sans: "Cairo Variable", "Cairo", "Segoe UI", Tahoma, sans-serif;
+  /* "The maker's hand": at most one short line per page, never on controls or prices. */
+  --font-hand: "Aref Ruqaa", "Cairo Variable", serif;
+
+  /* Type scale (app tokens, opened up for large screens). */
+  --text-hand: clamp(1.75rem, 1.3rem + 1.6vw, 2.75rem);
+  --text-hand--line-height: 1.35;
+  --text-hand-sm: 1.5rem;
+  --text-hand-sm--line-height: 1.4;
+  --text-display: clamp(2rem, 1.4rem + 2.4vw, 3.5rem);
+  --text-display--line-height: 1.25;
+  --text-headline: clamp(1.5rem, 1.2rem + 1.1vw, 2.125rem);
+  --text-headline--line-height: 1.35;
+  --text-title: clamp(1.1875rem, 1.1rem + 0.35vw, 1.4375rem);
+  --text-title--line-height: 1.45;
+  --text-subtitle: 0.9375rem;
+  --text-subtitle--line-height: 1.6;
+  --text-body: 1rem;
+  --text-body--line-height: 1.85;
+  --text-body-sm: 0.875rem;
+  --text-body-sm--line-height: 1.75;
+  --text-meta: 0.8125rem;
+  --text-meta--line-height: 1.6;
+  --text-price: 1.0625rem;
+  --text-price--line-height: 1.4;
+  --text-price-lg: 1.625rem;
+  --text-price-lg--line-height: 1.3;
+
+  /* Radii: tag 6, control 14, image 16, image-lg 24, sheet 28 (app shapes). */
+  --radius-tag: 6px;
+  --radius-control: 14px;
+  --radius-image: 16px;
+  --radius-image-lg: 24px;
+  --radius-sheet: 28px;
+
+  /* Motion: QUICK 120, STANDARD 240, EMPHASIZED 420 ms with the app's soft ease-out. */
+  --ease-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-quick: 120ms;
+  --duration-standard: 240ms;
+  --duration-emphasized: 420ms;
+
+  --breakpoint-xs: 26rem;
+  --container-page: 84rem;
+  --container-prose: 40rem;
+}
+
+/* Layering scale. Nothing else in the codebase sets z-index ad hoc. */
+:root {
+  --z-header: 30;
+  --z-nav: 35;
+  --z-overlay: 40;
+  --z-dialog: 50;
+  --z-grain: 60;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-paper text-ink font-sans text-body antialiased;
+    min-height: 100dvh;
+  }
+  /* Paper grain: one static, fixed, non-interactive layer (never on scrolling content). */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-grain);
+    pointer-events: none;
+    opacity: var(--hm-grain-opacity);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .24 0 0 0 0 .11 0 0 0 0 .27 0 0 0 1.4 -.35'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  :focus-visible {
+    outline: 2.5px solid var(--hm-primary);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+  ::selection {
+    background: var(--hm-primary-container);
+    color: var(--hm-on-primary-container);
+  }
+  img {
+    color: transparent;
+  }
+}
+
+/* Running stitch: the app's divider, used instead of hairlines and card edges. */
+@utility stitch {
+  height: 2px;
+  background-image: linear-gradient(to left, var(--stitch-color, var(--hm-border-strong)) 0 7px, transparent 7px 12px);
+  background-size: 12px 2px;
+  background-repeat: repeat-x;
+  border-radius: 2px;
+}
+
+/* Pinking-shears edge where imagery meets content (bottom edge zig-zag). */
+@utility pinked-bottom {
+  --tooth: 18px;
+  --depth: 9px;
+  mask:
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--tooth) 100%,
+    linear-gradient(#000 0 0) top / 100% calc(100% - var(--depth)) no-repeat;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility page-gutter {
+  padding-inline: clamp(1rem, 0.5rem + 2.5vw, 3rem);
+}
+
+/* First-screen entrance: plain CSS, so it starts at first paint without waiting for JavaScript.
+   Each element sets its own order with --i. */
+.enter {
+  animation: hm-rise 750ms var(--ease-soft) backwards;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+
+.enter-pop {
+  animation: hm-pop 900ms var(--ease-soft) backwards;
+  animation-delay: calc(var(--i, 0) * 110ms + 180ms);
+}
+
+/* Each page eases in when you navigate. `backwards` so no transform is left on the page afterwards. */
+.page-enter {
+  animation: hm-page-in 420ms var(--ease-soft) backwards;
+}
+
+@keyframes hm-page-in {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+}
+
+@keyframes hm-pop {
+  from {
+    opacity: 0;
+    scale: 0.94;
+    translate: 0 1.5rem;
+  }
+}
+
+@keyframes hm-rise {
+  from {
+    opacity: 0;
+    translate: 0 1.25rem;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+
+dialog[open] {
+  animation: hm-dialog-in 340ms var(--ease-soft);
+}
+dialog[open]::backdrop {
+  animation: hm-fade-in 340ms ease-out;
+}
+@keyframes hm-dialog-in {
+  from {
+    opacity: 0;
+    translate: 0 28px;
+    scale: 0.98;
+  }
+}
+@keyframes hm-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Without JavaScript nothing may stay hidden waiting for an animation. */
+@media (scripting: none) {
+  [data-reveal],
+  [data-fade] {
+    opacity: 1 !important;
+    transform: none !important;
+    pointer-events: auto !important;
+  }
+}
+
+@keyframes hm-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+
+/* Zig-zag edge sitting on the bottom of a dark band, in the page colour. */
+@utility pinked-top {
+  --tooth: 18px;
+  mask: conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--tooth) 100%;
+}
+
+/* Switching theme eases the colours instead of snapping (set briefly by ThemeToggle). */
+html.theme-easing,
+html.theme-easing *,
+html.theme-easing *::before,
+html.theme-easing *::after {
+  transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, fill 0.35s ease !important;
+}
+
+
+/* Any card in a list lifts a little on hover and settles back when left. Off for reduced motion. */
+.card-lift {
+  transition: transform var(--duration-standard) var(--ease-soft, ease), box-shadow var(--duration-standard) var(--ease-soft, ease);
+}
+.card-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 30px -22px rgb(61 29 70 / 0.55);
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-lift:hover { transform: none; }
+}
