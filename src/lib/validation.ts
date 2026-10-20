@@ -19,6 +19,9 @@ export const MSG = {
   mismatch: "كلمتين السر مش زي بعض",
   tooShort: (n: number) => `الحد الأدنى ${n} أحرف`,
   tooLong: (n: number) => `الحد الأقصى ${n} حرف`,
+  tooSmall: (n: number) => `لازم القيمة متقلش عن ${n}`,
+  tooLarge: (n: number) => `لازم القيمة متزيدش عن ${n}`,
+  notNumber: "اكتب رقم صحيح",
 } as const;
 
 export const required: Check = (v) => (v.trim() ? null : MSG.required);
@@ -39,6 +42,28 @@ export function text({ min = 1, max = 2000 }: { min?: number; max?: number } = {
     if (!t) return MSG.required;
     if (t.length < min) return MSG.tooShort(min);
     if (t.length > max) return MSG.tooLong(max);
+    return null;
+  };
+}
+
+/** Reads a number typed with Arabic or Latin digits ("١٢٫٥" or "12.5"); null when it isn't one. */
+export function parseNumber(v: string): number | null {
+  const t = normalizeDigits(v).replace(/[٫,]/g, ".").trim();
+  if (!t || !/^\d+(\.\d+)?$/.test(t)) return null;
+  return Number(t);
+}
+
+/**
+ * Core `validatePrice` / `validateDimension` (decimals, from 0.01), `validateStock` (whole, from 0)
+ * and `validateQuantity` (whole, from 1).
+ */
+export function numberCheck({ min, max = Number.MAX_SAFE_INTEGER, whole = false, optional = false }: { min: number; max?: number; whole?: boolean; optional?: boolean }): Check {
+  return (v) => {
+    if (!v.trim()) return optional ? null : MSG.required;
+    const n = parseNumber(v);
+    if (n === null || (whole && !Number.isInteger(n))) return MSG.notNumber;
+    if (n < min) return MSG.tooSmall(min);
+    if (n > max) return MSG.tooLarge(max);
     return null;
   };
 }

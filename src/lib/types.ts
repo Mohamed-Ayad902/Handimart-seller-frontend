@@ -50,7 +50,8 @@ export interface Store {
   logoUrl: string | null;
   bannerUrl: string | null;
   vacationMode: boolean;
-  isBoosted?: boolean;
+  /** Lombok drops the `is` of a primitive boolean, so the JSON key is `boosted`. */
+  boosted?: boolean;
   boostActiveUntil?: string | null;
 }
 
@@ -179,4 +180,103 @@ export interface OrderFilters {
   endDate?: string;
   minPrice?: number;
   maxPrice?: number;
+}
+
+/* ---------------------------------------------------------------- products (ProductResponse) */
+
+export type ProductType = "READY_MADE" | "MADE_TO_ORDER";
+export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type ProductRejectionReason = "INAPPROPRIATE_CONTENT" | "POOR_IMAGE_QUALITY" | "INCORRECT_CATEGORY" | "PRICING_ERROR" | "COUNTERFEIT_ITEM" | "OTHER";
+export type ProductAvailability = "AVAILABLE" | "OUT_OF_STOCK" | "UNAVAILABLE";
+export const SHIPPING_FLAGS = ["FRAGILE", "GLASS_ITEM", "SPECIAL_HANDLING", "REQUIRES_SIGNATURE", "ASSEMBLY_REQUIRED"] as const;
+export type ShippingFlag = (typeof SHIPPING_FLAGS)[number];
+
+export interface ProductMedia {
+  id: string;
+  url: string | null;
+  type: "IMAGE" | "VIDEO" | "UNKNOWN";
+}
+
+export interface Dimensions {
+  weightKg: number | null;
+  heightCm: number | null;
+  widthCm: number | null;
+  lengthCm: number | null;
+}
+
+export interface CustomizationValue {
+  id?: string;
+  value: string;
+  additionalPrice: number | null;
+  additionalTimeMinutes: number | null;
+}
+
+export interface Customization {
+  id?: string;
+  label: string;
+  required: boolean;
+  values: CustomizationValue[];
+}
+
+export interface PriceChange {
+  oldPrice: number;
+  newPrice: number;
+  changedAt: string;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  slug: string | null;
+  description: string;
+  basePrice: number;
+  currentPrice: number;
+  productType: ProductType;
+  approvalStatus: ApprovalStatus;
+  /** JSON key is `active` (Lombok getter `isActive()` on a primitive boolean), as the app reads it. */
+  active: boolean;
+  rejectionReason: ProductRejectionReason | null;
+  reviewComment: string | null;
+  estimatedDeliveryTimeMinutes: number | null;
+  stockQuantity: number | null;
+  categoryName: string | null;
+  categoryId: string;
+  averageRating: number | null;
+  totalReviews: number | null;
+  media: ProductMedia[];
+  customizations: Customization[] | null;
+  shippingFlags: ShippingFlag[] | null;
+  boosted: boolean;
+  boostActiveUntil: string | null;
+  totalSold: number | null;
+  availability: ProductAvailability | null;
+  dimensions: Dimensions | null;
+  createdAt: string;
+  updatedAt: string | null;
+  priceHistory: PriceChange[] | null;
+}
+
+/** `ProductRequest`: the JSON `body` part of create and update. */
+export interface ProductRequest {
+  name: string;
+  description: string;
+  price: number;
+  categoryId: string;
+  dimensions: Dimensions;
+  productType: ProductType;
+  stockQuantity: number;
+  preparationTimeMinutes: number;
+  shippingFlags: ShippingFlag[];
+  attributes: Record<string, string>;
+  customizations: Customization[];
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string | null;
+  parentId: string | null;
+  imageUrl: string | null;
+  children: Category[] | null;
+  isActive: boolean;
 }

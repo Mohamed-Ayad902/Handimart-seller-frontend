@@ -20,7 +20,7 @@ export const NAV: { title: string | null; items: NavItem[] }[] = [
       { href: "/", label: "الرئيسية", icon: House },
       { href: "/orders", label: "الطلبات", icon: Package, badge: "pendingOrders" },
       { href: "/requests", label: "طلبات تفصيل", icon: ChatsCircle, badge: "pendingRequests", soon: true },
-      { href: "/products", label: "المنتجات", icon: Storefront, soon: true },
+      { href: "/products", label: "المنتجات", icon: Storefront },
     ],
   },
   {
@@ -52,6 +52,7 @@ export const NAV: { title: string | null; items: NavItem[] }[] = [
 export const TABS: NavItem[] = [
   { href: "/", label: "الرئيسية", icon: House },
   { href: "/orders", label: "الطلبات", icon: Package, badge: "pendingOrders" },
+  { href: "/products", label: "المنتجات", icon: Storefront },
 ];
 
 export function isActive(pathname: string, href: string) {
