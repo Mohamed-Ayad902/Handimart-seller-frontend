@@ -64,11 +64,17 @@ export async function send<T>(
   return (envelope?.data ?? null) as T;
 }
 
-/** Sends files plus a JSON part (the backend's multipart endpoints), via the proxy route. */
-export async function upload<T>(path: string, json: unknown, files: File[], { fileField = "photos", method = "POST" }: { fileField?: string; method?: string } = {}): Promise<T> {
+/**
+ * Sends files plus a JSON part (the backend's multipart endpoints), via the proxy route. Files go
+ * under `fileField`, or under their own part names when given as `[name, file]` pairs.
+ */
+export async function upload<T>(path: string, json: unknown, files: File[] | [string, File][], { fileField = "photos", method = "POST" }: { fileField?: string; method?: string } = {}): Promise<T> {
   const form = new FormData();
   form.append("body", new Blob([JSON.stringify(json)], { type: "application/json" }));
-  for (const file of files) form.append(fileField, file);
+  for (const item of files) {
+    if (Array.isArray(item)) form.append(item[0], item[1]);
+    else form.append(fileField, item);
+  }
   let response: Response;
   try {
     response = await fetch(`/api/bff${path}`, { method, body: form, credentials: "same-origin" });

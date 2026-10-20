@@ -50,9 +50,53 @@ export interface Store {
   logoUrl: string | null;
   bannerUrl: string | null;
   vacationMode: boolean;
+  fbPage?: string | null;
+  instaPage?: string | null;
+  website?: string | null;
+  location?: StoreLocation | null;
+  region?: RegionItem | null;
+  regionPath?: RegionItem[] | null;
+  categories?: Category[] | null;
   /** Lombok drops the `is` of a primitive boolean, so the JSON key is `boosted`. */
   boosted?: boolean;
   boostActiveUntil?: string | null;
+}
+
+export interface StoreLocation {
+  city: string | null;
+  district: string | null;
+  detailedAddress: string | null;
+  postalCode: string | null;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+export interface RegionItem {
+  id: string;
+  name: string;
+  type: "GOVERNORATE" | "CITY" | "AREA";
+  hasChildren: boolean | null;
+}
+
+export type PayoutMethod = "INSTAPAY" | "BANK_TRANSFER" | "MOBILE_WALLET";
+
+/** `StoreRequest`: the JSON `body` part of `POST /seller/profile/store-info`. */
+export interface StoreRequest {
+  name: string;
+  description: string;
+  fbPage: string | null;
+  instaPage: string | null;
+  website: string | null;
+  location: { city: string; detailedAddress: string };
+  categoryIds: string[];
+  regionId: string | null;
+}
+
+export interface LegalDocument {
+  type: "PRIVACY_POLICY" | "TERMS_OF_SERVICE";
+  title: string;
+  content: string;
+  updatedAt: string | null;
 }
 
 export interface Seller {
@@ -97,7 +141,7 @@ export interface Wallet {
   pendingBalance: number;
   commissionDebt: number;
   lifetimeEarnings: number;
-  payoutMethod: "INSTAPAY" | "BANK_TRANSFER" | "MOBILE_WALLET" | null;
+  payoutMethod: PayoutMethod | null;
   payoutAccountIdentifier: string | null;
 }
 

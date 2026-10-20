@@ -43,7 +43,7 @@ export const NAV: { title: string | null; items: NavItem[] }[] = [
     items: [
       { href: "/notifications", label: "الإشعارات", icon: Bell, soon: true },
       { href: "/support", label: "الدعم", icon: Lifebuoy, soon: true },
-      { href: "/store", label: "متجري", icon: Gear, soon: true },
+      { href: "/store", label: "متجري", icon: Gear },
     ],
   },
 ];

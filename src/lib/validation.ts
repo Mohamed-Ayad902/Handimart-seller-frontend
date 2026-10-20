@@ -67,3 +67,7 @@ export function numberCheck({ min, max = Number.MAX_SAFE_INTEGER, whole = false,
     return null;
   };
 }
+
+/** Core `URL_REGEX` / `validateOptionalUrl`: scheme optional, so "facebook.com/mystore" passes. */
+const URL = /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w\- ./?%&=]*)?$/;
+export const optionalUrl: Check = (v) => (!v.trim() || URL.test(v.trim()) ? null : "الرابط غير صحيح");
