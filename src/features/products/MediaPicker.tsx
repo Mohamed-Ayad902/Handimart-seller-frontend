@@ -6,11 +6,11 @@ import { AnimatePresence, m } from "motion/react";
 import { ImagesSquare, Play, Trash, UploadSimple } from "@phosphor-icons/react";
 import { Spinner } from "@/components/ui/ConfirmDialog";
 import type { ProductMedia } from "@/lib/types";
-import { MAX_MEDIA, MEDIA_MSG, UPLOAD_BUDGET, compressImage, formatMB, mediaKind, totalBytes, type PickedMedia } from "./media";
+import { MAX_MEDIA, MEDIA_MSG, UPLOAD_BUDGET, compressImage, compressVideo, formatMB, mediaKind, totalBytes, type PickedMedia } from "./media";
 
 /**
  * Photos and videos of a piece: the ones already saved (edit) and the new ones picked here.
- * New photos are compressed as they are added; the meter shows how much of the one-request
+ * New photos and videos are compressed as they are added; the meter shows how much of the one-request
  * budget they use. The first item is the cover customers see.
  */
 export function MediaPicker({
@@ -29,6 +29,7 @@ export function MediaPicker({
   const inputId = useId();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const count = existing.length + picked.length;
@@ -54,8 +55,25 @@ export function MediaPicker({
       const prepared: PickedMedia[] = [];
       for (const file of list) {
         const kind = mediaKind(file)!;
-        const ready = kind === "IMAGE" ? await compressImage(file).catch(() => null) : file;
-        if (!ready) return setProblem(MEDIA_MSG.broken);
+        let ready: File | null;
+        if (kind === "IMAGE") ready = await compressImage(file).catch(() => null);
+        else {
+          // A video gets whatever the request has left once the photos picked so far are counted.
+          const left = UPLOAD_BUDGET - used - totalBytes(prepared);
+          setProgress(0);
+          try {
+            ready = await compressVideo(file, left, setProgress);
+          } catch (error) {
+            prepared.forEach((p) => URL.revokeObjectURL(p.preview));
+            return setProblem(error instanceof Error && error.message === MEDIA_MSG.videoLong ? MEDIA_MSG.videoLong : MEDIA_MSG.videoBroken);
+          } finally {
+            setProgress(null);
+          }
+        }
+        if (!ready) {
+          prepared.forEach((p) => URL.revokeObjectURL(p.preview));
+          return setProblem(MEDIA_MSG.broken);
+        }
         prepared.push({ key: `${Date.now()}-${prepared.length}-${file.name}`, file: ready, kind, preview: URL.createObjectURL(ready) });
       }
       if (used + totalBytes(prepared) > UPLOAD_BUDGET) {
@@ -112,7 +130,7 @@ export function MediaPicker({
               }`}
             >
               {busy ? <Spinner className="size-6" /> : count ? <UploadSimple className="size-6" aria-hidden="true" /> : <ImagesSquare className="size-7" aria-hidden="true" />}
-              {busy ? "بنجهّز الصور" : "ضيف صور"}
+              {progress !== null ? `بنضغط الفيديو ${Math.round(progress * 100).toLocaleString("ar-EG")}٪` : busy ? "بنجهّز الصور" : "ضيف صور"}
             </label>
             <input
               ref={input}
