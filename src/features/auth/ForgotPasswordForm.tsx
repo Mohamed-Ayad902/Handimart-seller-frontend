@@ -13,6 +13,7 @@ import { ApiError, authApi } from "@/lib/client/api";
 import { normalizeDigits, normalizePhone } from "@/lib/phone";
 import { MSG, otp, phone, strongPassword } from "@/lib/validation";
 import { useForm } from "@/hooks/useForm";
+import { E, track } from "@/lib/observability/analytics";
 
 const RESEND_SECONDS = 60;
 
@@ -66,6 +67,7 @@ export function ForgotPasswordForm() {
   const reset = () =>
     run(async () => {
       await authApi.resetPassword({ phone: number, code: normalizeDigits(resetForm.values.code).trim(), newPassword: resetForm.values.newPassword });
+      track(E.FORGOT_PASSWORD_USED);
       toast.show("تم تغيير كلمة السر بنجاح، سجل دخول بكلمة السر الجديدة");
       router.replace("/login");
     });

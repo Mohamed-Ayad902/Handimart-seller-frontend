@@ -1,11 +1,12 @@
 "use client";
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/client/api";
+import { ApiError, api } from "@/lib/client/api";
 import type { BoostCampaign, BoostPaymentMethod, BoostPlan, BoostTargetType, Page, Product } from "@/lib/types";
 import { homeKeys } from "@/features/home/api";
 import { productKeys } from "@/features/products/api";
 import { walletKeys } from "@/features/wallet/api";
+import { E, track, tracked } from "@/lib/observability/analytics";
 
 export const boostKeys = {
   plans: (target: BoostTargetType) => ["boost", "plans", target] as const,
@@ -45,7 +46,18 @@ export function useBoostableProducts(enabled: boolean) {
 export function usePurchaseBoost() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (body: { planId: string; targetType: BoostTargetType; targetRefId: string | null; preferredPaymentMethod: BoostPaymentMethod }) => api.post<BoostCampaign>("/seller/boost/purchase", body),
+    mutationFn: (body: { planId: string; targetType: BoostTargetType; targetRefId: string | null; preferredPaymentMethod: BoostPaymentMethod }) => {
+      track(E.BOOST_PAYMENT_INITIATED, { payment_method: body.preferredPaymentMethod });
+      return tracked(api.post<BoostCampaign>("/seller/boost/purchase", body), E.BOOST_PURCHASE_SUCCESS, (c) => ({
+        value: c?.priceSnapshot,
+        currency: "EGP",
+        plan_id: c?.planId ?? body.planId,
+        payment_method: c?.paymentMethod ?? body.preferredPaymentMethod,
+      })).catch((error: unknown) => {
+        track(E.BOOST_PURCHASE_FAILED, { error_reason: error instanceof ApiError ? (error.code ?? String(error.status)) : "unknown" });
+        throw error;
+      });
+    },
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: boostKeys.campaigns });
       void client.invalidateQueries({ queryKey: homeKeys.wallet });

@@ -8,6 +8,7 @@ import { formatDateTime, formatPrice } from "@/lib/format";
 import type { SellerOrder } from "@/lib/types";
 import { JOURNEY, NEXT, PAYMENT_METHOD, PAYMENT_STATUS, STATUS, journeyStep, orderRef } from "./status";
 import { OrderActions } from "./OrderActions";
+import { E, track } from "@/lib/observability/analytics";
 
 /**
  * The order's detail as a side panel over the list (a full sheet on phones): its journey, what
@@ -18,6 +19,10 @@ export function OrderPanel({ order, missing, onClose }: { order: SellerOrder | n
   const open = Boolean(order) || missing;
   const panel = useRef<HTMLDivElement>(null);
   const returnTo = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (order) track(E.ORDER_DETAILS_OPENED, { status: order.status });
+  }, [order?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!open) return;

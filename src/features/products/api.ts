@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { api, upload } from "@/lib/client/api";
 import type { Category, Page, Product, ProductRequest } from "@/lib/types";
+import { E, tracked } from "@/lib/observability/analytics";
 
 /** Large pages: the backend has no search or status filter here, so the list filters what it has loaded (as the app does). */
 export const PAGE_SIZE = 50;
@@ -61,7 +62,7 @@ function useReplaceProduct() {
 export function useSetActive() {
   const replace = useReplaceProduct();
   return useMutation({
-    mutationFn: ({ id, active }: { id: string; active: boolean }) => api.patch<Product>(`/seller/products/${id}/${active ? "activate" : "deactivate"}`),
+    mutationFn: ({ id, active }: { id: string; active: boolean }) => tracked(api.patch<Product>(`/seller/products/${id}/${active ? "activate" : "deactivate"}`), active ? E.PRODUCT_ACTIVATED : E.PRODUCT_DEACTIVATED, { product_id: id }),
     onSuccess: replace,
   });
 }
@@ -70,7 +71,7 @@ export function useSetActive() {
 export function useUpdateStock() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, stock }: { id: string; stock: number }) => api.patch<null>(`/seller/products/${id}/stock?stock=${stock}`),
+    mutationFn: ({ id, stock }: { id: string; stock: number }) => tracked(api.patch<null>(`/seller/products/${id}/stock?stock=${stock}`), E.PRODUCT_STOCK_UPDATED, { product_id: id, new_stock: stock }),
     onSuccess: (_, { id, stock }) => {
       client.setQueryData<Pages>(productKeys.mine, (data) =>
         data
@@ -106,9 +107,9 @@ export function useSaveProduct() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, body, files, removeMediaIds }: SaveInput) => {
-      if (!id) return upload<Product>("/seller/products", body, files, { fileField: "images" });
+      if (!id) return tracked(upload<Product>("/seller/products", body, files, { fileField: "images" }), E.PRODUCT_CREATION_SUCCESS, (p) => ({ product_id: p?.id }));
       for (const mediaId of removeMediaIds) await api.delete<null>(`/seller/products/${id}/images/${mediaId}`);
-      return upload<Product>(`/seller/products/${id}`, body, files, { fileField: "images", method: "PUT" });
+      return tracked(upload<Product>(`/seller/products/${id}`, body, files, { fileField: "images", method: "PUT" }), E.PRODUCT_RESUBMITTED, { product_id: id });
     },
     onSettled: () => client.invalidateQueries({ queryKey: productKeys.mine }),
   });

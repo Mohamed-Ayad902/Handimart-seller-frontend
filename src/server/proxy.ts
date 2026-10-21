@@ -36,7 +36,7 @@ export async function proxy(request: NextRequest, backendPath: string, { enforce
   }
 
   let payload: ArrayBuffer | null = null;
-  if (method !== "GET" && method !== "DELETE") {
+  if (method !== "GET") {
     const length = Number(request.headers.get("content-length") ?? 0);
     if (length > MAX_BODY) return fail(413, "الملف كبير أوي.", "TOO_LARGE");
     payload = await request.arrayBuffer();

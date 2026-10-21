@@ -5,6 +5,7 @@ import { api, upload } from "@/lib/client/api";
 import type { Category, LegalDocument, PayoutMethod, RegionItem, Seller, StoreRequest, Wallet } from "@/lib/types";
 import { SELLER_KEY } from "@/features/auth/session";
 import { homeKeys } from "@/features/home/api";
+import { E, tracked } from "@/lib/observability/analytics";
 
 /** Vacation mode is set to an explicit state (the backend's idempotent PUT), never toggled. */
 export function useVacationMode() {
@@ -35,7 +36,7 @@ export function useSaveCapacity() {
 export function useRequestDeletion() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: () => api.post<null>("/auth/seller/account/request-deletion"),
+    mutationFn: () => tracked(api.post<null>("/auth/seller/account/request-deletion"), E.ACCOUNT_DELETION_REQUESTED),
     onSuccess: () => client.invalidateQueries({ queryKey: SELLER_KEY }),
   });
 }

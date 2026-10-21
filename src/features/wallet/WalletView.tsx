@@ -23,8 +23,10 @@ import { PAYOUT } from "@/features/store/api";
 import { useEarnings, useLedger, usePayoutRequests, useRequestPayout } from "./api";
 import { EarningsBars } from "./EarningsBars";
 import { dayLabel, groupByDay, ledgerKind, ledgerMeaning, ledgerSign, ledgerTitle, payoutReference, payoutStatus } from "./ledger";
+import { E, useTrackOpen } from "@/lib/observability/analytics";
 
 export function WalletView() {
+  useTrackOpen(E.WALLET_SCREEN_OPENED);
   const wallet = useWallet();
   const [withdrawing, setWithdrawing] = useState(false);
 

@@ -15,6 +15,7 @@ import { phone, required } from "@/lib/validation";
 import { useForm } from "@/hooks/useForm";
 import type { Seller } from "@/lib/types";
 import { SELLER_KEY, deletionPending, homeFor, useSeller } from "./session";
+import { E, track } from "@/lib/observability/analytics";
 
 /** Only same-site paths are honoured as a return address after signing in. */
 function safeNext(value: string | null): string | null {
@@ -55,6 +56,7 @@ export function LoginForm() {
     setBusy(true);
     try {
       const seller = await authApi.login({ phone: normalizePhone(form.values.phone), password: form.values.password });
+      track(E.LOGIN, { method: "phone" });
       if (deletionPending(seller)) setPendingDeletion(seller);
       else enter(seller);
     } catch (error) {
@@ -69,6 +71,7 @@ export function LoginForm() {
     setReactivating(true);
     try {
       const seller = await api.post<Seller>("/auth/seller/account/reactivate");
+      track(E.ACCOUNT_REACTIVATED);
       reactivated.current = true;
       setPendingDeletion(null);
       enter(seller);

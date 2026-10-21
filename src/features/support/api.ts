@@ -3,6 +3,7 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, upload } from "@/lib/client/api";
 import type { Page, SupportContextType, SupportConversation, SupportMessage } from "@/lib/types";
+import { E, tracked } from "@/lib/observability/analytics";
 
 /** There is no realtime channel (handover G3): an open chat polls while the tab is visible, like the app (4s). */
 const CHAT_POLL_MS = 5_000;
@@ -49,7 +50,7 @@ export function useSendMessage(id: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: ({ text, attachment }: { text: string | null; attachment: File | null }) =>
-      upload<SupportMessage>(`/seller/support/conversations/${id}/messages`, { text }, attachment ? [["attachment", attachment]] : []),
+      tracked(upload<SupportMessage>(`/seller/support/conversations/${id}/messages`, { text }, attachment ? [["attachment", attachment]] : []), E.SUPPORT_MESSAGE_SENT, { has_attachment: !!attachment }),
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: supportKeys.messages(id) });
       void client.invalidateQueries({ queryKey: supportKeys.conversations });
@@ -68,7 +69,7 @@ export interface StartInput {
 export function useStartConversation() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ attachment, ...body }: StartInput) => upload<SupportConversation>("/seller/support/conversations", body, attachment ? [["attachment", attachment]] : []),
+    mutationFn: ({ attachment, ...body }: StartInput) => tracked(upload<SupportConversation>("/seller/support/conversations", body, attachment ? [["attachment", attachment]] : []), E.SUPPORT_MESSAGE_SENT, { has_attachment: !!attachment, type: body.contextType }),
     onSuccess: () => client.invalidateQueries({ queryKey: supportKeys.conversations }),
   });
 }

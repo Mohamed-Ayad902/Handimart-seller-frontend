@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { Info, Medal, Megaphone, Percent, Sparkle, Star, Trophy } from "@phosphor-icons/react";
 import type { Icon } from "@phosphor-icons/react";
@@ -12,6 +13,7 @@ import { StatusTag, type StatusTone } from "@/components/ui/StatusTag";
 import { formatCount, formatDate, formatPrice } from "@/lib/format";
 import type { SellerGoal, SellerReward } from "@/lib/types";
 import { useGoals, useMarkRewardSeen } from "./api";
+import { E, track } from "@/lib/observability/analytics";
 
 const number = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
 const INSTANT = new Set(["BOOST_CREDIT", "FEATURED_PLACEMENT", "BADGE"]);
@@ -54,6 +56,15 @@ export function GoalsView() {
   const goals = useGoals();
   const seen = useMarkRewardSeen();
   const unseen = goals.data?.rewards.find((r) => !r.seen) ?? null;
+  const loaded = goals.data ?? null;
+
+  // Once per visit, when the page actually has goals to show (the app's GoalsTracker.viewed).
+  const logged = useRef(false);
+  useEffect(() => {
+    if (!loaded || logged.current) return;
+    logged.current = true;
+    track(E.SELLER_GOAL_VIEWED, { count: loaded.goals.length, available_rewards: loaded.rewards.filter((r) => r.status === "AVAILABLE").length });
+  }, [loaded]);
 
   return (
     <div className="flex flex-col gap-10">
@@ -118,7 +129,11 @@ export function GoalsView() {
         </>
       )}
 
-      {unseen && <Unlocked reward={unseen} onDone={() => seen.mutate(unseen.id)} />}
+      {unseen && <Unlocked reward={unseen} onDone={() =>
+            seen.mutate(unseen.id, {
+              onSuccess: () => track(E.SELLER_GOAL_COMPLETED, { goal_code: unseen.goalCode, reward_type: String(unseen.rewardType).toLowerCase() }),
+            })
+          } />}
     </div>
   );
 }

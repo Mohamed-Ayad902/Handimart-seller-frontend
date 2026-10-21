@@ -17,6 +17,8 @@ import { useRecentOrders } from "@/features/orders/api";
 import { STATUS, itemsSummary, orderRef } from "@/features/orders/status";
 import { useBanners, useHomeStats, usePendingRequests, useReviewSummary, useTopProducts, useWallet, useWeekEarnings } from "./api";
 import { ThreadChart } from "./ThreadChart";
+import { E, track } from "@/lib/observability/analytics";
+import { PushPrompt } from "./PushPrompt";
 
 /** App greeting by time of day (`home_greeting_*`). */
 function greeting(seller: Seller | null | undefined, hour = new Date().getHours()) {
@@ -36,6 +38,8 @@ export function HomeView() {
           {greeting(seller)}
         </h1>
       </header>
+
+      <PushPrompt />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         <Attention />
@@ -207,7 +211,7 @@ function RecentOrders() {
         <ul className="overflow-hidden rounded-image border border-line bg-surface">
           {orders.data.content.map((o) => (
             <li key={o.id} className="border-b border-dashed border-line last:border-0">
-              <Link href={`/orders?open=${o.id}`} className="group flex items-center gap-4 px-4 py-3 transition-colors duration-quick hover:bg-paper">
+              <Link href={`/orders?open=${o.id}`} onClick={() => o.status === "PENDING" && track(E.HOME_PENDING_ORDER_CLICKED)} className="group flex items-center gap-4 px-4 py-3 transition-colors duration-quick hover:bg-paper">
                 <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-surface-sunken text-ink-2 transition-transform duration-standard ease-soft group-hover:-rotate-6">
                   <Package className="size-5" />
                 </span>

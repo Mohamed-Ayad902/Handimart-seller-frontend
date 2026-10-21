@@ -4,6 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryKey 
 import { api } from "@/lib/client/api";
 import type { OrderFilters, Page, SellerOrder, SellerSettableStatus } from "@/lib/types";
 import { homeKeys } from "@/features/home/api";
+import { E, tracked } from "@/lib/observability/analytics";
 
 export const PAGE_SIZE = 20;
 
@@ -37,7 +38,8 @@ export interface StatusChange {
 export function useUpdateOrderStatus() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, change }: { id: string; change: StatusChange }) => api.patch<SellerOrder>(`/seller/orders/${id}/status`, change),
+    mutationFn: ({ id, change, from }: { id: string; change: StatusChange; from?: string }) =>
+      tracked(api.patch<SellerOrder>(`/seller/orders/${id}/status`, change), E.ORDER_STATUS_CHANGED, (o) => ({ order_id: id, old_status: from, new_status: o?.status })),
     onSuccess: (order) => {
       client.setQueriesData<Page<SellerOrder>>({ queryKey: ["orders", "list"] }, (page) =>
         page ? { ...page, content: page.content.map((o) => (o.id === order.id ? order : o)) } : page,

@@ -20,12 +20,14 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'" + (process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""),
+      // Firebase Analytics loads Google's tag and reports to Google Analytics; FCM registers push.
+      "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com" + (process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""),
       "style-src 'self' 'unsafe-inline'",
-      `img-src 'self' data: blob: ${imageHosts.map((h) => `https://${h}`).join(" ")}`.trim(),
+      `img-src 'self' data: blob: https://*.google-analytics.com https://*.googletagmanager.com ${imageHosts.map((h) => `https://${h}`).join(" ")}`.trim(),
       "font-src 'self'",
       `media-src 'self' blob: ${imageHosts.map((h) => `https://${h}`).join(" ")}`.trim(),
-      "connect-src 'self'",
+      "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://firebase.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com",
+      "worker-src 'self'",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",

@@ -20,6 +20,7 @@ import { CustomizationEditor } from "./CustomizationEditor";
 import { FLAG, TYPE } from "./labels";
 import { MEDIA_MSG, UPLOAD_BUDGET, totalBytes, type PickedMedia } from "./media";
 import { MediaPicker } from "./MediaPicker";
+import { E, useTrackOpen } from "@/lib/observability/analytics";
 
 const STEPS = [
   { id: "piece", label: "القطعة", title: "عرّف العملاء بالقطعة", body: "صور واضحة واسم وحكاية قصيرة: ده اللي بيبيع." },
@@ -85,8 +86,13 @@ function initialValues(p: Product | null): Record<Field, string> {
 }
 
 /** New piece, or edit of an existing one (loaded from the seller's list: there is no GET-by-id). */
+function NewProduct() {
+  useTrackOpen(E.PRODUCT_CREATION_STARTED);
+  return <Form product={null} />;
+}
+
 export function ProductForm({ id }: { id: string | null }) {
-  if (!id) return <Form product={null} />;
+  if (!id) return <NewProduct />;
   return <EditLoader id={id} />;
 }
 
