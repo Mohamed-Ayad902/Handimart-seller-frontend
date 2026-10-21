@@ -103,6 +103,7 @@ export const api = {
 /** Sign-in routes (they set the session cookies themselves). */
 export const authApi = {
   login: (input: { phone: string; password: string }) => send<Seller>("/api/auth/login", { method: "POST", body: input }),
+  register: (input: { phone: string; password: string }) => send<Seller>("/api/auth/register", { method: "POST", body: input }),
   logout: () => send<null>("/api/auth/logout", { method: "POST", body: {} }),
   me: () => send<Seller | null>("/api/auth/me"),
   requestReset: (phone: string) => send<null>("/api/auth/request-reset", { method: "POST", body: { phone } }),

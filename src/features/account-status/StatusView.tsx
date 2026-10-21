@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Stitch } from "@/components/ui/Stitch";
 import { formatDate } from "@/lib/format";
 import type { RejectionReason, Seller } from "@/lib/types";
-import { useLogout, useSeller } from "@/features/auth/session";
+import { homeFor, useLogout, useSeller } from "@/features/auth/session";
 
 const SUPPORT = `https://wa.me/201289303016?text=${encodeURIComponent("أهلاً، كنت محتاج مساعدة بخصوص حساب التاجر بتاعي.")}`;
 
@@ -30,7 +30,7 @@ function copyFor(seller: Seller) {
     case "SUSPENDED":
       return { kicker: "وقفة مؤقتة", title: "حسابك موقوف مؤقتاً", body: "وقفنا حسابك مؤقتاً عشان فيه مخالفة لسياسات المنصة.", art: "tangledThread" as const };
     case "ONBOARDING":
-      return { kicker: "لسه فاضل خطوات", title: "كمّل تسجيل متجرك", body: "تسجيل المتجر لسه من تطبيق البائع. كمّل الخطوات الباقية هناك، وبعد ما نراجعه ونفعّله هتقدر تدير متجرك من هنا.", art: "emptySpool" as const };
+      return { kicker: "لسه فاضل خطوات", title: "كمّل تسجيل متجرك", body: "فاضل كام خطوة في تسجيل متجرك. كمّلها، وبعد ما نراجعه ونفعّله هتقدر تدير متجرك من هنا.", art: "emptySpool" as const };
     default:
       return { kicker: "على الماكينة", title: "طلبك بيتراجع دلوقتي", body: "بنراجع بيانات متجرك عشان نضمن أحسن تجربة، وهنفعل حسابك خلال 24 لـ 48 ساعة بالكتير.", art: "threadSearch" as const };
   }
@@ -77,7 +77,7 @@ export function StatusView() {
   useEffect(() => {
     if (isPending || isError) return;
     if (!seller) router.replace("/login");
-    else if (seller.accountStatus === "ACTIVE") router.replace("/");
+    else if (seller.accountStatus === "ACTIVE" || seller.accountStatus === "ONBOARDING") router.replace(homeFor(seller));
   }, [seller, isPending, isError, router]);
 
   return (

@@ -41,14 +41,14 @@ export function useRequestDeletion() {
 }
 
 /** Store details, logo and banner. Images are only sent when the seller picked new ones. */
-export function useSaveStore() {
+export function useSaveStore(path: "/seller/profile/store-info" | "/auth/seller/store-info" = "/seller/profile/store-info") {
   const client = useQueryClient();
   return useMutation({
     mutationFn: ({ body, logo, banner }: { body: StoreRequest; logo: File | null; banner: File | null }) => {
       const parts: [string, File][] = [];
       if (logo) parts.push(["logo", logo]);
       if (banner) parts.push(["banner", banner]);
-      return upload<Seller>("/seller/profile/store-info", body, parts);
+      return upload<Seller>(path, body, parts);
     },
     onSuccess: (seller) => {
       if (seller) client.setQueryData(SELLER_KEY, seller);

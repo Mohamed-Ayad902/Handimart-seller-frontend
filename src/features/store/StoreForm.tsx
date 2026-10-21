@@ -50,7 +50,11 @@ function hasSocial(v: Record<Field, string>) {
 /** Backend field names to this form's, for server-side validation messages. */
 const SERVER_FIELDS: Record<string, Field> = { name: "name", description: "description", "location.detailedAddress": "detailedAddress", fbPage: "fbPage", instaPage: "instaPage", website: "website" };
 
-export function StoreForm() {
+/**
+ * Store details: editing them from the dashboard, or filling them in as a registration step
+ * (`register`), where the same parts go to `auth/seller/store-info` and the logo is required.
+ */
+export function StoreForm({ register }: { register?: { onSaved: (seller: Seller) => void } } = {}) {
   const seller = useSeller();
   if (seller.isPending)
     return (
@@ -60,20 +64,22 @@ export function StoreForm() {
         <Skeleton className="h-64" />
       </div>
     );
-  if (seller.isError || !seller.data?.store) return <StateView illustration="tangledThread" title="معرفناش نجيب بيانات متجرك" action={<Button onClick={() => seller.refetch()}>حاول مرة أخرى</Button>} />;
-  return <Form seller={seller.data} />;
+  if (seller.isError || !seller.data || (!register && !seller.data.store)) return <StateView illustration="tangledThread" title="معرفناش نجيب بيانات متجرك" action={<Button onClick={() => seller.refetch()}>حاول مرة أخرى</Button>} />;
+  return <Form seller={seller.data} register={register} />;
 }
+
+const NO_STORE = { name: "", description: "", logoUrl: null, bannerUrl: null } as unknown as NonNullable<Seller["store"]>;
 
 interface Picked {
   file: File;
   preview: string;
 }
 
-function Form({ seller }: { seller: Seller }) {
-  const store = seller.store!;
+function Form({ seller, register }: { seller: Seller; register?: { onSaved: (seller: Seller) => void } }) {
+  const store = seller.store ?? NO_STORE;
   const router = useRouter();
   const toast = useToast();
-  const save = useSaveStore();
+  const save = useSaveStore(register ? "/auth/seller/store-info" : "/seller/profile/store-info");
   const categories = useStoreCategories();
 
   const form = useForm<Field>(
@@ -149,7 +155,8 @@ function Form({ seller }: { seller: Seller }) {
     save.mutate(
       { body, logo: logo?.file ?? null, banner: banner?.file ?? null },
       {
-        onSuccess: () => {
+        onSuccess: (saved) => {
+          if (register) return register.onSaved(saved);
           toast.show("اتحفظت بيانات متجرك");
           router.push("/store");
         },
@@ -166,6 +173,12 @@ function Form({ seller }: { seller: Seller }) {
 
   return (
     <form noValidate onSubmit={submit} className="flex flex-col gap-8">
+      {register ? (
+        <header className="flex flex-col gap-2">
+          <h1 className="enter text-headline font-extrabold">بيانات متجرك</h1>
+          <p className="text-body text-ink-2">ده اللي العملاء هيشوفوه لما يدخلوا متجرك. تقدر تعدّله بعدين.</p>
+        </header>
+      ) : (
       <header className="flex flex-col gap-2">
         <Link href="/store" className="group inline-flex w-fit min-h-11 items-center gap-1.5 text-body-sm font-bold text-ink-2 hover:text-ink">
           <ArrowRight className="size-4 transition-transform duration-standard ease-soft group-hover:translate-x-1" aria-hidden="true" />
@@ -174,6 +187,7 @@ function Form({ seller }: { seller: Seller }) {
         <h1 className="enter text-headline font-extrabold">عدّل بيانات متجرك</h1>
         <p className="text-body text-ink-2">ده اللي العملاء بيشوفوه لما يدخلوا متجرك.</p>
       </header>
+      )}
 
       <Section index={0} title="واجهة متجرك" body="كده هيشوفك العملاء.">
         <div className="relative">
@@ -300,7 +314,7 @@ function Form({ seller }: { seller: Seller }) {
         </div>
       </Section>
 
-      <div className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 flex flex-col gap-3 rounded-image-lg border border-line bg-surface/95 p-4 shadow-[0_12px_40px_-20px_rgb(42_19_48/0.35)] backdrop-blur sm:flex-row sm:items-center sm:justify-between md:bottom-4">
+      <div className={`sticky z-20 ${register ? "bottom-4" : "bottom-[calc(4.25rem+env(safe-area-inset-bottom))] md:bottom-4"} flex flex-col gap-3 rounded-image-lg border border-line bg-surface/95 p-4 shadow-[0_12px_40px_-20px_rgb(42_19_48/0.35)] backdrop-blur sm:flex-row sm:items-center sm:justify-between`}>
         <p className="text-body-sm text-ink-2" aria-live="polite">
           {failure ? (
             <span role="alert" className="font-semibold text-error">
@@ -308,17 +322,21 @@ function Form({ seller }: { seller: Seller }) {
             </span>
           ) : save.isPending ? (
             "بنحفظ بيانات المتجر..."
+          ) : register ? (
+            "بعدها هنبعتلك كود على موبايلك تأكّد بيه الرقم."
           ) : (
             "التعديلات بتظهر للعملاء على طول."
           )}
         </p>
         <div className="flex gap-3">
-          <ButtonLink href="/store" variant="quiet">
-            إلغاء
-          </ButtonLink>
+          {!register && (
+            <ButtonLink href="/store" variant="quiet">
+              إلغاء
+            </ButtonLink>
+          )}
           <Button type="submit" disabled={save.isPending} aria-busy={save.isPending}>
             {save.isPending && <Spinner />}
-            احفظ التعديلات
+            {register ? "احفظ وكمّل" : "احفظ التعديلات"}
           </Button>
         </div>
       </div>
