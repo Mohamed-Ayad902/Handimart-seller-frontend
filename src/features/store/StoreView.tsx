@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { m } from "motion/react";
 import { CaretLeft, FileText, Gauge, Lifebuoy, MapPin, PencilSimple, ShieldCheck, SignOut, SunHorizon, Trash, Wallet as WalletIcon, WhatsappLogo, type Icon } from "@phosphor-icons/react";
+import { Switch } from "@/components/ui/Switch";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Dialog } from "@/components/ui/Dialog";
@@ -128,22 +129,6 @@ function RowLink({ icon, title, body, href, external = false }: { icon: Icon; ti
         </Link>
       )}
     </li>
-  );
-}
-
-function Switch({ on, busy, label, onToggle }: { on: boolean; busy: boolean; label: string; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      disabled={busy}
-      onClick={onToggle}
-      className={`relative h-8 w-14 shrink-0 rounded-full border-[1.5px] transition-colors duration-standard ${on ? "border-primary bg-primary" : "border-line-strong bg-surface-sunken"} disabled:opacity-60`}
-    >
-      <m.span layout transition={{ type: "spring", stiffness: 500, damping: 34 }} className={`absolute top-1 size-5 rounded-full shadow-sm ${on ? "end-1 bg-on-primary" : "start-1 bg-ink-2"}`} />
-    </button>
   );
 }
 

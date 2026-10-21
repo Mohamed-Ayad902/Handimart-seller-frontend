@@ -485,3 +485,34 @@ export interface AppNotification {
   target: NotificationTarget | string | null;
   createdAt: string;
 }
+
+export type DiscountType = "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING";
+export type DiscountStatus = "RUNNING" | "SCHEDULED" | "EXPIRED" | "EXHAUSTED" | "DISABLED";
+
+/** `DiscountDto`. `active` is the seller's switch; `status` is what is actually happening. */
+export interface Discount {
+  id: string;
+  name: string;
+  type: DiscountType;
+  value: number;
+  startDate: string;
+  endDate: string;
+  active: boolean;
+  valid: boolean;
+  status: DiscountStatus | string;
+  currentUsage: number | null;
+  maxUsage: number | null;
+  productIds: string[];
+  productName: string | null;
+}
+
+/** `DiscountRequest` (create and update). No products means the whole store. */
+export interface DiscountRequest {
+  name: string;
+  type: DiscountType;
+  value: number;
+  startDate: string;
+  endDate: string;
+  maxUsage: number | null;
+  productIds: string[];
+}
