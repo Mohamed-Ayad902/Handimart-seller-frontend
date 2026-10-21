@@ -469,3 +469,19 @@ export interface SupportMessage {
   createdAt: string;
   readAt: string | null;
 }
+
+/* ---------------------------------------------------------------- notifications */
+
+export type NotificationTarget = "ORDER" | "PRODUCT" | "WALLET" | "SUPPORT" | "ACCOUNT" | "PROMO" | "CUSTOM_REQUEST" | "GOALS" | "REVIEW" | "NONE";
+
+/** `NotificationDto` (always asked for with `audience=SELLER`, forced by the proxy). */
+export interface AppNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  referenceId: string | null;
+  isRead: boolean;
+  target: NotificationTarget | string | null;
+  createdAt: string;
+}

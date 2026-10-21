@@ -9,6 +9,9 @@ import { LogoMark } from "@/components/brand/LogoMark";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import type { Seller } from "@/lib/types";
 import { useLogout } from "@/features/auth/session";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useLatestNotifications } from "@/features/notifications/api";
+import { NotificationRow } from "@/features/notifications/NotificationsView";
 import { StoreMark } from "./StoreMark";
 import { badgeText, useUnreadCount } from "./badges";
 
@@ -21,7 +24,7 @@ export function TopBar({ seller }: { seller: Seller }) {
       </Link>
       <OrderSearch />
       <div className="ms-auto flex items-center gap-1">
-        <BellLink />
+        <BellMenu />
         <ThemeToggle />
         <AccountMenu seller={seller} />
       </div>
@@ -60,29 +63,11 @@ function OrderSearch() {
   );
 }
 
-function BellLink() {
-  const { data: unread } = useUnreadCount();
-  const n = unread ?? 0;
-  return (
-    <span className="relative grid size-11 place-items-center rounded-full text-ink" title="الإشعارات (قريباً على الويب)">
-      <Bell className="size-6" weight={n ? "fill" : "regular"} aria-hidden="true" />
-      <span className="sr-only">{n ? `عندك ${n} إشعار جديد` : "مفيش إشعارات جديدة"}</span>
-      {n > 0 && (
-        <span aria-hidden="true" className="absolute top-1.5 end-1.5 grid min-w-4.5 place-items-center rounded-full bg-primary px-1 text-[0.625rem] leading-4.5 font-extrabold text-on-primary">
-          {badgeText(n)}
-        </span>
-      )}
-    </span>
-  );
-}
-
-function AccountMenu({ seller }: { seller: Seller }) {
+/** Popover hook shared by the bell and the account menu: closes on outside press and Escape. */
+function usePopover() {
   const [open, setOpen] = useState(false);
-  const logout = useLogout();
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
-  const menuId = useId();
-
   useEffect(() => {
     if (!open) return;
     const onDown = (e: PointerEvent) => !root.current?.contains(e.target as Node) && setOpen(false);
@@ -99,6 +84,85 @@ function AccountMenu({ seller }: { seller: Seller }) {
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
+  return { open, setOpen, root, button };
+}
+
+const popoverMotion = {
+  initial: { opacity: 0, y: -6, scale: 0.98 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  exit: { opacity: 0, y: -4, scale: 0.98 },
+  transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] as const },
+};
+
+function BellMenu() {
+  const { open, setOpen, root, button } = usePopover();
+  const panelId = useId();
+  const { data: unread } = useUnreadCount();
+  const latest = useLatestNotifications(open);
+  const n = unread ?? 0;
+  const items = latest.data?.content ?? [];
+
+  return (
+    <div ref={root} className="relative">
+      <button
+        ref={button}
+        type="button"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen((o) => !o)}
+        className="relative grid size-11 place-items-center rounded-full text-ink transition-colors duration-quick hover:bg-surface-sunken"
+      >
+        <Bell className="size-6" weight={n ? "fill" : "regular"} aria-hidden="true" />
+        <span className="sr-only">{n ? `الإشعارات، عندك ${n} جديد` : "الإشعارات"}</span>
+        {n > 0 && (
+          <span aria-hidden="true" className="absolute top-1.5 end-1.5 grid min-w-4.5 place-items-center rounded-full bg-primary px-1 text-[0.625rem] leading-4.5 font-extrabold text-on-primary">
+            {badgeText(n)}
+          </span>
+        )}
+      </button>
+      <AnimatePresence>
+        {open && (
+          <m.div
+            id={panelId}
+            {...popoverMotion}
+            className="absolute end-0 top-full z-(--z-overlay) mt-2 w-[min(22rem,calc(100vw-2rem))] origin-top-left overflow-hidden rounded-image border border-line bg-surface-raised shadow-[0_18px_40px_-20px_rgb(42_19_48/0.5)] max-sm:fixed max-sm:inset-x-4 max-sm:top-16 max-sm:w-auto"
+          >
+            <p className="px-4 pt-3 pb-2 text-subtitle font-extrabold">الإشعارات</p>
+            <div className="max-h-[min(26rem,70dvh)] overflow-y-auto overscroll-contain" data-lenis-prevent="">
+              {latest.isPending ? (
+                <div className="flex flex-col gap-2 px-3 pb-3">
+                  <Skeleton className="h-14" />
+                  <Skeleton className="h-14" />
+                  <Skeleton className="h-14" />
+                </div>
+              ) : latest.isError ? (
+                <p className="px-4 pb-4 text-body-sm text-error">معرفناش نجيب الإشعارات.</p>
+              ) : !items.length ? (
+                <p className="px-4 pb-4 text-body-sm text-ink-2">مفيش إشعارات لسه.</p>
+              ) : (
+                <ul>
+                  {items.map((x) => (
+                    <li key={x.id} className="border-t border-dashed border-line">
+                      <NotificationRow notification={x} compact onOpen={() => setOpen(false)} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <Link href="/notifications" onClick={() => setOpen(false)} className="block border-t border-line px-4 py-3 text-center text-body-sm font-bold hover:bg-paper hover:text-accent-text">
+              اعرض كل الإشعارات
+            </Link>
+          </m.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function AccountMenu({ seller }: { seller: Seller }) {
+  const { open, setOpen, root, button } = usePopover();
+  const logout = useLogout();
+  const menuId = useId();
 
   const name = seller.user?.displayName || seller.store?.name || "حسابي";
 
@@ -119,10 +183,7 @@ function AccountMenu({ seller }: { seller: Seller }) {
         {open && (
           <m.div
             id={menuId}
-            initial={{ opacity: 0, y: -6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.98 }}
-            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            {...popoverMotion}
             className="absolute end-0 top-full z-(--z-overlay) mt-2 w-64 origin-top-left rounded-image border border-line bg-surface-raised p-2 shadow-[0_18px_40px_-20px_rgb(42_19_48/0.5)]"
           >
             <div className="px-3 py-2">
