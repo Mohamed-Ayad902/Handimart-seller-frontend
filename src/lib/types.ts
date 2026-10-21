@@ -353,3 +353,54 @@ export interface Category {
   children: Category[] | null;
   isActive: boolean;
 }
+
+/* ---------------------------------------------------------------- custom requests ("ask the artist") */
+
+export type CustomRequestStatus = "OPEN" | "UNDER_REVIEW" | "NEEDS_INFO" | "OFFER_SENT" | "ACCEPTED" | "DECLINED" | "CANCELLED" | "EXPIRED" | "COMPLETED";
+/** What the viewer may do next: decided by the server, the site only shows these. */
+export type CustomRequestAction = "ASK_INFO" | "SEND_OFFER" | "DECLINE" | string;
+export type CustomRequestActor = "CUSTOMER" | "SELLER" | "SYSTEM";
+
+export interface CustomRequestEvent {
+  type: string;
+  actorRole: CustomRequestActor | null;
+  note: string | null;
+  unitPrice: number | null;
+  preparationMinutes: number | null;
+  photoUrls: string[] | null;
+  createdAt: string;
+}
+
+/** `CustomRequestResponse`. Differences and totals come computed from the server. */
+export interface CustomRequest {
+  id: string;
+  status: CustomRequestStatus | string;
+  productId: string;
+  productName: string;
+  productImageUrl: string | null;
+  customerName: string | null;
+  description: string;
+  quantity: number;
+  photoUrls: string[] | null;
+  baseUnitPrice: number;
+  basePreparationMinutes: number;
+  sellerQuestion: string | null;
+  customerAnswer: string | null;
+  offeredUnitPrice: number | null;
+  offeredPreparationMinutes: number | null;
+  sellerNote: string | null;
+  sellerPhotoUrls: string[] | null;
+  offeredAt: string | null;
+  priceDifference: number | null;
+  preparationDifferenceMinutes: number | null;
+  offerTotal: number | null;
+  closingReason: string | null;
+  closedBy: CustomRequestActor | null;
+  orderId: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+  actions: CustomRequestAction[] | null;
+  /** Empty in lists; filled when one request is loaded. */
+  events: CustomRequestEvent[] | null;
+}

@@ -2,7 +2,7 @@ import "server-only";
 import { mediaUrl } from "@/lib/media";
 
 const SINGLE = new Set(["url", "imageUrl", "logoUrl", "bannerUrl", "mediaUrl", "profilePicUrl", "storeLogoUrl", "customerImage", "photoUrl", "avatarUrl", "attachmentUrl", "productImageUrl", "coverImageUrl"]);
-const LISTS = new Set(["photoUrls", "imageUrls", "referenceImages", "referenceImageUrls"]);
+const LISTS = new Set(["photoUrls", "imageUrls", "referenceImages", "referenceImageUrls", "sellerPhotoUrls"]);
 
 /**
  * Photos in API answers are rewritten to what the site can actually show (the site's own `/files`

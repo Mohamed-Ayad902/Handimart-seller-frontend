@@ -19,7 +19,7 @@ export const NAV: { title: string | null; items: NavItem[] }[] = [
     items: [
       { href: "/", label: "الرئيسية", icon: House },
       { href: "/orders", label: "الطلبات", icon: Package, badge: "pendingOrders" },
-      { href: "/requests", label: "طلبات تفصيل", icon: ChatsCircle, badge: "pendingRequests", soon: true },
+      { href: "/requests", label: "طلبات تفصيل", icon: ChatsCircle, badge: "pendingRequests" },
       { href: "/products", label: "المنتجات", icon: Storefront },
     ],
   },
