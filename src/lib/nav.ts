@@ -33,7 +33,7 @@ export const NAV: { title: string | null; items: NavItem[] }[] = [
   {
     title: "الشغل والفلوس",
     items: [
-      { href: "/wallet", label: "المحفظة", icon: Wallet, soon: true },
+      { href: "/wallet", label: "المحفظة", icon: Wallet },
       { href: "/reviews", label: "التقييمات", icon: Star, badge: "awaitingReviews", soon: true },
       { href: "/goals", label: "الأهداف", icon: Target, soon: true },
     ],

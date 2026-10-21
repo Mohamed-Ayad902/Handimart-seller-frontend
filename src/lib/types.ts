@@ -161,6 +161,19 @@ export interface LedgerEntry {
 
 export type ChartRange = "LAST_7_DAYS" | "TODAY" | "LAST_MONTH" | "CUSTOM";
 
+export type PayoutRequestStatus = "PENDING" | "COMPLETED" | "REJECTED";
+
+/** `SellerPayoutRequestDto`: one "pay me out" request and the admin's decision on it. */
+export interface PayoutRequest {
+  id: string;
+  amount: number;
+  status: PayoutRequestStatus | string;
+  payoutMethodSnapshot: string | null;
+  referenceNote: string | null;
+  requestedAt: string;
+  decidedAt: string | null;
+}
+
 export interface ReviewSummary {
   averageRating: number;
   totalReviews: number;
