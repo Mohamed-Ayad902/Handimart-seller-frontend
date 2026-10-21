@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/client/api";
 import type { BadgeKey } from "@/lib/nav";
-import { useHomeStats, usePendingRequests } from "@/features/home/api";
+import { useHomeStats, usePendingRequests, useReviewSummary } from "@/features/home/api";
 
 export const unreadKey = ["notifications", "unread"] as const;
 
@@ -25,7 +25,8 @@ export function useUnreadCount() {
 export function useBadges(): Partial<Record<BadgeKey, number>> {
   const stats = useHomeStats();
   const requests = usePendingRequests();
-  return { pendingOrders: stats.data?.pendingOrders, pendingRequests: requests.data ?? undefined };
+  const reviews = useReviewSummary();
+  return { pendingOrders: stats.data?.pendingOrders, pendingRequests: requests.data ?? undefined, awaitingReviews: reviews.data?.awaitingReplyCount ?? undefined };
 }
 
 export function badgeText(n: number) {

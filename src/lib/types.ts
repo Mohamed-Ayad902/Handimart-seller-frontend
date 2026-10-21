@@ -404,3 +404,38 @@ export interface CustomRequest {
   /** Empty in lists; filled when one request is loaded. */
   events: CustomRequestEvent[] | null;
 }
+
+/* ---------------------------------------------------------------- reviews */
+
+export type ReviewSort = "NEWEST" | "OLDEST" | "HIGHEST" | "LOWEST";
+export type ReviewFlagReason = "SPAM" | "OFFENSIVE" | "NOT_ABOUT_PRODUCT" | "FAKE" | "PERSONAL_INFO" | "OTHER";
+
+/** `ReviewResponse` as the seller sees it. */
+export interface Review {
+  id: string;
+  customerName: string | null;
+  customerImage: string | null;
+  rating: number;
+  comment: string | null;
+  photos: string[] | null;
+  createdAt: string;
+  updatedAt: string | null;
+  edited: boolean;
+  verifiedPurchase: boolean;
+  orderId: string | null;
+  productId: string | null;
+  productName: string | null;
+  productImage: string | null;
+  sellerReply: string | null;
+  sellerRepliedAt: string | null;
+  status: "PUBLISHED" | "HIDDEN" | string | null;
+  hiddenReason: ReviewFlagReason | string | null;
+}
+
+export interface ReviewFilters {
+  rating?: number;
+  withPhotos?: boolean;
+  replied?: boolean;
+  productId?: string;
+  sort: ReviewSort;
+}
