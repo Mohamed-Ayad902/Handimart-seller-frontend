@@ -103,6 +103,8 @@ export interface Seller {
   user: SellerUser | null;
   registrationStatus: RegistrationStatus | null;
   store: Store | null;
+  /** ID photo URLs, only for the seller's own review (set once the documents step is saved). */
+  personalDocs?: { frontNationalId: string | null; backNationalId: string | null; selfieNationalId: string | null } | null;
   accountStatus: AccountStatus | null;
   rejectionReason: RejectionReason | null;
   adminComment: string | null;

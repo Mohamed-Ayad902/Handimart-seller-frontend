@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, IdentificationCard, ImageSquare, SignOut, UploadSimple, UserCircle, WarningCircle } from "@phosphor-icons/react";
+import { CaretLeft, Check, IdentificationCard, ImageSquare, PaperPlaneTilt, SignOut, Storefront, UploadSimple, UserCircle, WarningCircle } from "@phosphor-icons/react";
 import { LogoMark } from "@/components/brand/LogoMark";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/ConfirmDialog";
@@ -20,8 +20,10 @@ import { AuthShell } from "@/features/auth/AuthShell";
 import { SELLER_KEY, homeFor, useLogout, useSeller } from "@/features/auth/session";
 import { MEDIA_MSG, UPLOAD_BUDGET, compressImage } from "@/features/products/media";
 import { StoreForm } from "@/features/store/StoreForm";
+import { REASONS } from "@/features/account-status/reasons";
+import { E, track } from "@/lib/observability/analytics";
 
-type Step = "personal" | "documents" | "store" | "otp";
+type Step = "personal" | "documents" | "store" | "otp" | "send";
 
 const STEPS: { key: Step; label: string }[] = [
   { key: "personal", label: "بياناتك" },
@@ -29,6 +31,25 @@ const STEPS: { key: Step; label: string }[] = [
   { key: "store", label: "المتجر" },
   { key: "otp", label: "تأكيد الرقم" },
 ];
+
+/** A rejected application: the same three steps, every one open, then sending it back for review. */
+const FIX_STEPS: { key: Step; label: string }[] = [...STEPS.slice(0, 3), { key: "send", label: "ابعته" }];
+
+/** The step the team's reason points at, so a rejected seller lands on what needs fixing. */
+function fixAt(seller: Seller): Step {
+  switch (seller.rejectionReason) {
+    case "INVALID_DOCUMENTS":
+      return "documents";
+    case "LOW_QUALITY_STORE_ASSETS":
+    case "STORE_POLICY_VIOLATION":
+      return "store";
+    default:
+      return "personal";
+  }
+}
+
+/** Who may be here: a draft account finishing sign-up, or a rejected one fixing its application. */
+const canRegister = (seller: Seller) => seller.accountStatus === "ONBOARDING" || seller.accountStatus === "REJECTED";
 
 /** Where an onboarding seller picks up, from the backend's `registrationStatus` (app `RegistrationStateMapper`). */
 function resumeAt(seller: Seller): Step {
@@ -50,16 +71,17 @@ function resumeAt(seller: Seller): Step {
  * Signing up as a new seller (the app's RegisterUserScreen): an account first (phone and
  * password, which signs the draft account in), then personal info, ID photos, the store and the
  * phone code. Every step is saved on the server, so the seller can leave and come back to it.
+ * A rejected seller comes back here too, edits what the team flagged and sends it for review again.
  */
 export function RegisterView() {
   const router = useRouter();
   const { data: seller, isPending } = useSeller();
 
   useEffect(() => {
-    if (seller && seller.accountStatus !== "ONBOARDING") router.replace(homeFor(seller));
+    if (seller && !canRegister(seller)) router.replace(homeFor(seller));
   }, [seller, router]);
 
-  if (isPending || (seller && seller.accountStatus !== "ONBOARDING"))
+  if (isPending || (seller && !canRegister(seller)))
     return (
       <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 p-6" aria-busy="true">
         <Skeleton className="h-10 w-1/2" />
@@ -98,6 +120,7 @@ function AccountStep() {
       let seller: Seller;
       try {
         seller = await authApi.register(input);
+        track(E.SIGN_UP, { method: "phone" });
       } catch (error) {
         // The number already has an account (app BasicInfoHandler): sign in and carry on from where it stopped.
         if (error instanceof ApiError && error.status === 409) seller = await authApi.login(input);
@@ -150,20 +173,31 @@ function Wizard({ seller }: { seller: Seller }) {
   const client = useQueryClient();
   const router = useRouter();
   const logout = useLogout();
-  const reached = resumeAt(seller);
-  const [viewing, setViewing] = useState<Step | null>(null);
+  const fixing = seller.accountStatus === "REJECTED";
+  const flow = fixing ? FIX_STEPS : STEPS;
+  const reached = fixing ? "send" : resumeAt(seller);
+  const [viewing, setViewing] = useState<Step | null>(() => (fixing ? fixAt(seller) : null));
   const step = viewing ?? reached;
   const top = useRef<HTMLDivElement>(null);
+  const index = flow.findIndex((s) => s.key === step);
 
+  const toTop = () => top.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   const saved = (next: Seller) => {
     client.setQueryData(SELLER_KEY, next);
-    setViewing(null);
-    if (next.accountStatus && next.accountStatus !== "ONBOARDING") router.replace(homeFor(next));
-    top.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    if (fixing) setViewing(flow[index + 1]?.key ?? "send");
+    else {
+      setViewing(null);
+      if (next.accountStatus && next.accountStatus !== "ONBOARDING") router.replace(homeFor(next));
+    }
+    toTop();
+  };
+  /** Fixing: a step with nothing changed just moves on. */
+  const skip = () => {
+    setViewing(flow[index + 1]?.key ?? "send");
+    toTop();
   };
 
-  const reachedIndex = STEPS.findIndex((s) => s.key === reached);
-  const index = STEPS.findIndex((s) => s.key === step);
+  const reachedIndex = flow.findIndex((s) => s.key === reached);
 
   return (
     <div ref={top} className="min-h-dvh bg-paper">
@@ -175,10 +209,11 @@ function Wizard({ seller }: { seller: Seller }) {
         </Button>
       </header>
       <main id="main" className={`mx-auto flex w-full flex-col gap-8 px-5 pb-16 ${step === "store" ? "max-w-4xl" : "max-w-xl"}`}>
-        <nav aria-label="خطوات التسجيل">
+        {fixing && <FixNotes seller={seller} />}
+        <nav aria-label={fixing ? "خطوات تعديل الطلب" : "خطوات التسجيل"}>
           <ol className="flex items-center">
-            {STEPS.map((s, i) => {
-              const done = i < reachedIndex;
+            {flow.map((s, i) => {
+              const done = fixing ? i < index : i < reachedIndex;
               const current = i === index;
               const canOpen = i <= reachedIndex && s.key !== "otp" && !current;
               const dot = (
@@ -203,21 +238,22 @@ function Wizard({ seller }: { seller: Seller }) {
                       <span className={`text-meta font-bold max-sm:sr-only ${current ? "text-ink" : "text-ink-3"}`}>{s.label}</span>
                     </span>
                   )}
-                  {i < STEPS.length - 1 && <span aria-hidden="true" className={`mx-1 h-0.5 flex-1 ${done ? "bg-ink" : "bg-[repeating-linear-gradient(to_left,var(--hm-border-strong)_0_6px,transparent_6px_11px)]"}`} />}
+                  {i < flow.length - 1 && <span aria-hidden="true" className={`mx-1 h-0.5 flex-1 ${done ? "bg-ink" : "bg-[repeating-linear-gradient(to_left,var(--hm-border-strong)_0_6px,transparent_6px_11px)]"}`} />}
                 </li>
               );
             })}
           </ol>
           <p className="mt-2 text-meta text-ink-3 sm:hidden">
-            خطوة {(index + 1).toLocaleString("ar-EG")} من {STEPS.length.toLocaleString("ar-EG")}: {STEPS[index]!.label}
+            خطوة {(index + 1).toLocaleString("ar-EG")} من {flow.length.toLocaleString("ar-EG")}: {flow[index]!.label}
           </p>
         </nav>
 
         <div key={step} className="page-enter">
-          {step === "personal" && <PersonalStep seller={seller} onSaved={saved} />}
-          {step === "documents" && <DocumentsStep onSaved={saved} />}
-          {step === "store" && <StoreForm register={{ onSaved: saved }} />}
+          {step === "personal" && <PersonalStep seller={seller} fixing={fixing} onSaved={saved} />}
+          {step === "documents" && <DocumentsStep seller={seller} fixing={fixing} onSaved={saved} onSkip={skip} />}
+          {step === "store" && <StoreForm register={{ onSaved: saved, hint: fixing ? "بعدها تراجع طلبك وتبعته للمراجعة تاني." : undefined }} />}
           {step === "otp" && <OtpStep seller={seller} onSaved={saved} />}
+          {step === "send" && <SendStep onOpen={(s) => { setViewing(s); toTop(); }} />}
         </div>
       </main>
     </div>
@@ -318,7 +354,7 @@ function Failure({ message }: { message: string | null }) {
 
 const PERSONAL_CHECKS = { name: text({ min: 1, max: 50 }), email };
 
-function PersonalStep({ seller, onSaved }: { seller: Seller; onSaved: (s: Seller) => void }) {
+function PersonalStep({ seller, fixing, onSaved }: { seller: Seller; fixing: boolean; onSaved: (s: Seller) => void }) {
   const user = seller.user;
   const form = useForm({ name: user?.displayName ?? "", email: user?.email ?? "" }, PERSONAL_CHECKS);
   const [isMale, setIsMale] = useState<boolean | null>(user?.isMale ?? null);
@@ -353,7 +389,7 @@ function PersonalStep({ seller, onSaved }: { seller: Seller; onSaved: (s: Seller
 
   return (
     <form noValidate onSubmit={submit} className="flex flex-col gap-6" aria-busy={busy}>
-      <StepHeader kicker="خطوة ١" title="عرّفنا بنفسك" body="بياناتك دي للمراجعة بس، ومش بتظهر للعملاء غير اسمك." />
+      <StepHeader kicker="خطوة ١" title={fixing ? "راجع بياناتك" : "عرّفنا بنفسك"} body="بياناتك دي للمراجعة بس، ومش بتظهر للعملاء غير اسمك." />
       <div className="flex flex-col gap-5 rounded-image-lg border border-line bg-surface p-5 sm:p-7">
         <div className="flex justify-center">
           <PhotoSlot round label="صورتك الشخصية" current={user?.profilePicUrl} picked={photo} error={photoError} onPick={setPhoto} />
@@ -399,7 +435,13 @@ const DOCS = [
 ] as const;
 type DocKey = (typeof DOCS)[number]["key"];
 
-function DocumentsStep({ onSaved }: { onSaved: (s: Seller) => void }) {
+function DocumentsStep({ seller, fixing, onSaved, onSkip }: { seller: Seller; fixing: boolean; onSaved: (s: Seller) => void; onSkip: () => void }) {
+  // Fixing: the photos already sent count, and only the ones replaced go up again.
+  const sent: Record<DocKey, string | null> = {
+    frontIdPic: (fixing && seller.personalDocs?.frontNationalId) || null,
+    backIdPic: (fixing && seller.personalDocs?.backNationalId) || null,
+    selfieWithIdPic: (fixing && seller.personalDocs?.selfieNationalId) || null,
+  };
   const [files, setFiles] = useState<Partial<Record<DocKey, Picked>>>({});
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -412,10 +454,11 @@ function DocumentsStep({ onSaved }: { onSaved: (s: Seller) => void }) {
     if (busy) return;
     setSubmitted(true);
     setProblem(null);
-    if (DOCS.some((d) => !files[d.key])) return;
+    if (DOCS.some((d) => !files[d.key] && !sent[d.key])) return;
+    const parts = DOCS.filter((d) => files[d.key]).map((d) => [d.key, files[d.key]!.file] as [string, File]);
+    if (!parts.length) return onSkip();
     setBusy(true);
     try {
-      const parts = DOCS.map((d) => [d.key, files[d.key]!.file] as [string, File]);
       const total = parts.reduce((n, [, f]) => n + f.size, 0);
       // Every part is optional on the backend, so photos that don't fit one request go one at a time (handover R1).
       const batches = total <= UPLOAD_BUDGET ? [parts] : parts.map((p) => [p]);
@@ -431,11 +474,15 @@ function DocumentsStep({ onSaved }: { onSaved: (s: Seller) => void }) {
 
   return (
     <form noValidate onSubmit={submit} className="flex flex-col gap-6" aria-busy={busy}>
-      <StepHeader kicker="خطوة ٢" title="صور البطاقة" body="عشان نتأكد إن المتجر بتاعك فعلاً. الصور مش بتظهر لحد غير فريق المراجعة." />
+      <StepHeader
+        kicker="خطوة ٢"
+        title="صور البطاقة"
+        body={fixing ? "غيّر الصورة اللي محتاجة تتعدل بس، والباقي هيفضل زي ما هو." : "عشان نتأكد إن المتجر بتاعك فعلاً. الصور مش بتظهر لحد غير فريق المراجعة."}
+      />
       <div className="grid gap-5 rounded-image-lg border border-line bg-surface p-5 sm:grid-cols-2 sm:p-7">
         {DOCS.map((d, i) => (
           <div key={d.key} className={i === 2 ? "sm:col-span-2 sm:mx-auto sm:w-1/2" : undefined}>
-            <PhotoSlot label={d.label} hint={d.hint} picked={files[d.key] ?? null} error={submitted && !files[d.key] ? "الصورة دي مطلوبة" : null} onPick={(p) => setFiles((f) => ({ ...f, [d.key]: p }))} />
+            <PhotoSlot label={d.label} hint={d.hint} current={sent[d.key]} picked={files[d.key] ?? null} error={submitted && !files[d.key] && !sent[d.key] ? "الصورة دي مطلوبة" : null} onPick={(p) => setFiles((f) => ({ ...f, [d.key]: p }))} />
           </div>
         ))}
       </div>
@@ -449,6 +496,75 @@ function DocumentsStep({ onSaved }: { onSaved: (s: Seller) => void }) {
         {busy ? "بنرفع الصور..." : "احفظ وكمّل"}
       </Button>
     </form>
+  );
+}
+
+/** What the team asked for, kept above every step while the seller fixes the application. */
+function FixNotes({ seller }: { seller: Seller }) {
+  if (!seller.rejectionReason && !seller.adminComment) return null;
+  return (
+    <aside aria-label="ملاحظات فريق المراجعة" className="rounded-image-lg bg-error-container/70 p-4 sm:p-5">
+      <p className="text-meta font-bold text-ink-2">محتاج يتعدل</p>
+      {seller.rejectionReason && <p className="mt-1 text-body-sm font-semibold text-ink">{REASONS[seller.rejectionReason]}</p>}
+      {seller.adminComment && <blockquote className="mt-2 border-s-2 border-ink/30 ps-3 text-body-sm whitespace-pre-line text-ink">{seller.adminComment}</blockquote>}
+    </aside>
+  );
+}
+
+const REVIEW_ROWS = [
+  { step: "personal", label: "بياناتك", body: "الاسم والإيميل والصورة", icon: UserCircle },
+  { step: "documents", label: "صور البطاقة", body: "الوش والضهر والسيلفي", icon: IdentificationCard },
+  { step: "store", label: "المتجر", body: "الاسم واللوجو والعنوان والأقسام", icon: Storefront },
+] as const;
+
+/** Fixing: a last look, then `auth/seller/resubmit` puts the application back in review. */
+function SendStep({ onOpen }: { onOpen: (step: Step) => void }) {
+  const client = useQueryClient();
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  async function send() {
+    if (busy) return;
+    setBusy(true);
+    setProblem(null);
+    try {
+      await api.post("/auth/seller/resubmit");
+      track(E.REGISTRATION_RESUBMITTED);
+      const next = await authApi.me();
+      client.setQueryData(SELLER_KEY, next);
+      router.replace(homeFor(next));
+    } catch (error) {
+      // The backend refuses a resubmit with nothing changed since the rejection, with its own reason.
+      setProblem(error instanceof ApiError ? error.message : "حصلت مشكلة. جرّب تاني.");
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <StepHeader kicker="آخر خطوة" title="ابعت طلبك تاني" body="اتأكد إنك عدّلت اللي الفريق طلبه، وبعدها ابعته. هنراجعه خلال 24 لـ 48 ساعة." />
+      <ul className="flex flex-col divide-y divide-line rounded-image-lg border border-line bg-surface">
+        {REVIEW_ROWS.map((r) => (
+          <li key={r.step}>
+            <button type="button" onClick={() => onOpen(r.step)} className="flex min-h-16 w-full items-center gap-4 px-5 py-3 text-start transition-colors duration-quick hover:bg-surface-sunken">
+              <r.icon className="size-6 shrink-0 text-ink-2" aria-hidden="true" />
+              <span className="flex-1">
+                <span className="block text-body font-bold">{r.label}</span>
+                <span className="block text-meta text-ink-2">{r.body}</span>
+              </span>
+              <span className="text-meta font-bold text-ink-2">راجع</span>
+              <CaretLeft className="size-4 text-ink-3" aria-hidden="true" />
+            </button>
+          </li>
+        ))}
+      </ul>
+      <Failure message={problem} />
+      <Button onClick={() => void send()} disabled={busy} className="w-full sm:w-auto sm:self-end">
+        {busy ? <Spinner /> : <PaperPlaneTilt className="size-5" aria-hidden="true" />}
+        ابعت للمراجعة
+      </Button>
+    </div>
   );
 }
 
@@ -501,7 +617,9 @@ function OtpStep({ seller, onSaved }: { seller: Seller; onSaved: (s: Seller) => 
     if (!form.validate()) return;
     setBusy(true);
     try {
-      onSaved(await api.post<Seller>("/auth/seller/confirm-otp", { code: normalizeDigits(form.values.code).trim() }));
+      const next = await api.post<Seller>("/auth/seller/confirm-otp", { code: normalizeDigits(form.values.code).trim() });
+      track(E.REGISTRATION_SUBMITTED);
+      onSaved(next);
     } catch (error) {
       if (error instanceof ApiError && form.setServerErrors(error.fields)) return;
       setProblem(error instanceof ApiError ? error.message : "حصلت مشكلة. جرّب تاني.");
