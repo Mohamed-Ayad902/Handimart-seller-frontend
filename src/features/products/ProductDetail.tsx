@@ -76,6 +76,11 @@ function Detail({ product: p }: { product: Product }) {
               رُد على تقييمات القطعة
             </Link>
           )}
+          {p.approvalStatus === "APPROVED" && (
+            <Link href={`/promotions/boost?product=${p.id}`} className="-mt-3 inline-flex min-h-11 items-center gap-1.5 self-start text-body-sm font-bold hover:text-accent-text">
+              {p.boosted ? "القطعة مُروَّجة دلوقتي · روّجها تاني" : "روّج القطعة دي عشان تظهر في أول البحث"}
+            </Link>
+          )}
 
           <Actions product={p} />
         </div>

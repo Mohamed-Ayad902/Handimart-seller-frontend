@@ -27,7 +27,7 @@ export const NAV: { title: string | null; items: NavItem[] }[] = [
     title: "الترويج",
     items: [
       { href: "/promotions/discounts", label: "الخصومات", icon: Tag },
-      { href: "/promotions/boost", label: "روّج متجرك", icon: Rocket, soon: true },
+      { href: "/promotions/boost", label: "روّج متجرك", icon: Rocket },
     ],
   },
   {

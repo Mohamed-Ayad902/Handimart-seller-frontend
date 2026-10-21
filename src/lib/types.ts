@@ -516,3 +516,36 @@ export interface DiscountRequest {
   maxUsage: number | null;
   productIds: string[];
 }
+
+export type BoostTargetType = "STORE_BANNER" | "PRODUCT_SEARCH";
+export type BoostPaymentMethod = "WALLET" | "MANUAL_INSTAPAY" | "REWARD_CREDIT";
+export type BoostCampaignStatus = "PENDING_PAYMENT" | "ACTIVE" | "COMPLETED" | "CANCELLED_BY_ADMIN";
+
+/** `BoostPlanDto`: fixed plans set by the admins. */
+export interface BoostPlan {
+  id: string;
+  targetType: BoostTargetType;
+  name: string;
+  durationDays: number;
+  price: number;
+  isActive: boolean;
+  sortOrder: number | null;
+}
+
+/** `BoostCampaignDto`. A manual payment carries the support chat it is settled in. */
+export interface BoostCampaign {
+  id: string;
+  planId: string | null;
+  planName: string | null;
+  targetType: BoostTargetType;
+  targetRefId: string | null;
+  targetLabel: string | null;
+  priceSnapshot: number;
+  durationDaysSnapshot: number;
+  paymentMethod: BoostPaymentMethod;
+  status: BoostCampaignStatus | string;
+  startTime: string | null;
+  endTime: string | null;
+  supportConversationId: string | null;
+  createdAt: string;
+}
