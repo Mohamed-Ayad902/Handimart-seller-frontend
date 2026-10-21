@@ -549,3 +549,53 @@ export interface BoostCampaign {
   supportConversationId: string | null;
   createdAt: string;
 }
+
+export type GoalConditionType = "ORDERS_COMPLETED" | "TOTAL_SALES" | "AVERAGE_RATING";
+export type GoalRewardType = "PLATFORM_FEE" | "BOOST_CREDIT" | "FEATURED_PLACEMENT" | "BADGE";
+
+/** `SellerGoalResponse`: a running goal with this seller's progress, all computed server-side. */
+export interface SellerGoal {
+  goalId: string;
+  code: string;
+  title: string;
+  description: string | null;
+  conditionType: GoalConditionType | string;
+  target: number;
+  progress: number;
+  remaining: number;
+  minSample: number | null;
+  cycleNumber: number | null;
+  status: "IN_PROGRESS" | "COMPLETED";
+  completedAt: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  rewardType: GoalRewardType | string;
+  rewardValue: number | null;
+  rewardLabel: string | null;
+  rewardUses: number | null;
+  rewardValidDays: number | null;
+}
+
+/** `SellerRewardResponse`. `seen` is false until the "reward unlocked" moment was shown. */
+export interface SellerReward {
+  id: string;
+  goalId: string;
+  goalCode: string;
+  goalTitle: string;
+  rewardType: GoalRewardType | string;
+  rewardValue: number | null;
+  label: string | null;
+  status: "AVAILABLE" | "REDEEMED" | "EXPIRED";
+  grantedAt: string;
+  expiresAt: string | null;
+  redeemedOrderId: string | null;
+  redeemedOrderShortId: string | null;
+  redeemedAt: string | null;
+  savedAmount: number | null;
+  seen: boolean;
+}
+
+export interface GoalsOverview {
+  goals: SellerGoal[];
+  rewards: SellerReward[];
+}

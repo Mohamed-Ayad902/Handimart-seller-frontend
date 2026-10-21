@@ -35,7 +35,7 @@ export const NAV: { title: string | null; items: NavItem[] }[] = [
     items: [
       { href: "/wallet", label: "المحفظة", icon: Wallet },
       { href: "/reviews", label: "التقييمات", icon: Star, badge: "awaitingReviews" },
-      { href: "/goals", label: "الأهداف", icon: Target, soon: true },
+      { href: "/goals", label: "الأهداف", icon: Target },
     ],
   },
   {
