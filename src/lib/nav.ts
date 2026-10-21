@@ -19,31 +19,31 @@ export const NAV: { title: string | null; items: NavItem[] }[] = [
     items: [
       { href: "/", label: "الرئيسية", icon: House },
       { href: "/orders", label: "الطلبات", icon: Package, badge: "pendingOrders" },
-      { href: "/requests", label: "طلبات تفصيل", icon: ChatsCircle, badge: "pendingRequests", soon: true },
+      { href: "/requests", label: "طلبات تفصيل", icon: ChatsCircle, badge: "pendingRequests" },
       { href: "/products", label: "المنتجات", icon: Storefront },
     ],
   },
   {
     title: "الترويج",
     items: [
-      { href: "/promotions/discounts", label: "الخصومات", icon: Tag, soon: true },
-      { href: "/promotions/boost", label: "روّج متجرك", icon: Rocket, soon: true },
+      { href: "/promotions/discounts", label: "الخصومات", icon: Tag },
+      { href: "/promotions/boost", label: "روّج متجرك", icon: Rocket },
     ],
   },
   {
     title: "الشغل والفلوس",
     items: [
-      { href: "/wallet", label: "المحفظة", icon: Wallet, soon: true },
-      { href: "/reviews", label: "التقييمات", icon: Star, badge: "awaitingReviews", soon: true },
-      { href: "/goals", label: "الأهداف", icon: Target, soon: true },
+      { href: "/wallet", label: "المحفظة", icon: Wallet },
+      { href: "/reviews", label: "التقييمات", icon: Star, badge: "awaitingReviews" },
+      { href: "/goals", label: "الأهداف", icon: Target },
     ],
   },
   {
     title: "الحساب",
     items: [
-      { href: "/notifications", label: "الإشعارات", icon: Bell, soon: true },
-      { href: "/support", label: "الدعم", icon: Lifebuoy, soon: true },
-      { href: "/store", label: "متجري", icon: Gear, soon: true },
+      { href: "/notifications", label: "الإشعارات", icon: Bell },
+      { href: "/support", label: "الدعم", icon: Lifebuoy },
+      { href: "/store", label: "متجري", icon: Gear },
     ],
   },
 ];

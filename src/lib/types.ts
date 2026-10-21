@@ -50,9 +50,53 @@ export interface Store {
   logoUrl: string | null;
   bannerUrl: string | null;
   vacationMode: boolean;
+  fbPage?: string | null;
+  instaPage?: string | null;
+  website?: string | null;
+  location?: StoreLocation | null;
+  region?: RegionItem | null;
+  regionPath?: RegionItem[] | null;
+  categories?: Category[] | null;
   /** Lombok drops the `is` of a primitive boolean, so the JSON key is `boosted`. */
   boosted?: boolean;
   boostActiveUntil?: string | null;
+}
+
+export interface StoreLocation {
+  city: string | null;
+  district: string | null;
+  detailedAddress: string | null;
+  postalCode: string | null;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+export interface RegionItem {
+  id: string;
+  name: string;
+  type: "GOVERNORATE" | "CITY" | "AREA";
+  hasChildren: boolean | null;
+}
+
+export type PayoutMethod = "INSTAPAY" | "BANK_TRANSFER" | "MOBILE_WALLET";
+
+/** `StoreRequest`: the JSON `body` part of `POST /seller/profile/store-info`. */
+export interface StoreRequest {
+  name: string;
+  description: string;
+  fbPage: string | null;
+  instaPage: string | null;
+  website: string | null;
+  location: { city: string; detailedAddress: string };
+  categoryIds: string[];
+  regionId: string | null;
+}
+
+export interface LegalDocument {
+  type: "PRIVACY_POLICY" | "TERMS_OF_SERVICE";
+  title: string;
+  content: string;
+  updatedAt: string | null;
 }
 
 export interface Seller {
@@ -97,8 +141,37 @@ export interface Wallet {
   pendingBalance: number;
   commissionDebt: number;
   lifetimeEarnings: number;
-  payoutMethod: "INSTAPAY" | "BANK_TRANSFER" | "MOBILE_WALLET" | null;
+  payoutMethod: PayoutMethod | null;
   payoutAccountIdentifier: string | null;
+}
+
+export type LedgerType = "ESCROW_HOLD" | "ESCROW_CANCELLED" | "EARNING" | "WITHDRAWAL" | "REFUND_DEDUCTION" | "BOOST_FEE";
+export type LedgerStatus = "PENDING" | "COMPLETED" | "REJECTED";
+
+/** `WalletLedgerResponse`: one movement on the seller's wallet, newest first. */
+export interface LedgerEntry {
+  id: string;
+  orderId: string | null;
+  type: LedgerType | string;
+  status: LedgerStatus | string;
+  amount: number;
+  description: string | null;
+  createdAt: string;
+}
+
+export type ChartRange = "LAST_7_DAYS" | "TODAY" | "LAST_MONTH" | "CUSTOM";
+
+export type PayoutRequestStatus = "PENDING" | "COMPLETED" | "REJECTED";
+
+/** `SellerPayoutRequestDto`: one "pay me out" request and the admin's decision on it. */
+export interface PayoutRequest {
+  id: string;
+  amount: number;
+  status: PayoutRequestStatus | string;
+  payoutMethodSnapshot: string | null;
+  referenceNote: string | null;
+  requestedAt: string;
+  decidedAt: string | null;
 }
 
 export interface ReviewSummary {
@@ -279,4 +352,250 @@ export interface Category {
   imageUrl: string | null;
   children: Category[] | null;
   isActive: boolean;
+}
+
+/* ---------------------------------------------------------------- custom requests ("ask the artist") */
+
+export type CustomRequestStatus = "OPEN" | "UNDER_REVIEW" | "NEEDS_INFO" | "OFFER_SENT" | "ACCEPTED" | "DECLINED" | "CANCELLED" | "EXPIRED" | "COMPLETED";
+/** What the viewer may do next: decided by the server, the site only shows these. */
+export type CustomRequestAction = "ASK_INFO" | "SEND_OFFER" | "DECLINE" | string;
+export type CustomRequestActor = "CUSTOMER" | "SELLER" | "SYSTEM";
+
+export interface CustomRequestEvent {
+  type: string;
+  actorRole: CustomRequestActor | null;
+  note: string | null;
+  unitPrice: number | null;
+  preparationMinutes: number | null;
+  photoUrls: string[] | null;
+  createdAt: string;
+}
+
+/** `CustomRequestResponse`. Differences and totals come computed from the server. */
+export interface CustomRequest {
+  id: string;
+  status: CustomRequestStatus | string;
+  productId: string;
+  productName: string;
+  productImageUrl: string | null;
+  customerName: string | null;
+  description: string;
+  quantity: number;
+  photoUrls: string[] | null;
+  baseUnitPrice: number;
+  basePreparationMinutes: number;
+  sellerQuestion: string | null;
+  customerAnswer: string | null;
+  offeredUnitPrice: number | null;
+  offeredPreparationMinutes: number | null;
+  sellerNote: string | null;
+  sellerPhotoUrls: string[] | null;
+  offeredAt: string | null;
+  priceDifference: number | null;
+  preparationDifferenceMinutes: number | null;
+  offerTotal: number | null;
+  closingReason: string | null;
+  closedBy: CustomRequestActor | null;
+  orderId: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+  actions: CustomRequestAction[] | null;
+  /** Empty in lists; filled when one request is loaded. */
+  events: CustomRequestEvent[] | null;
+}
+
+/* ---------------------------------------------------------------- reviews */
+
+export type ReviewSort = "NEWEST" | "OLDEST" | "HIGHEST" | "LOWEST";
+export type ReviewFlagReason = "SPAM" | "OFFENSIVE" | "NOT_ABOUT_PRODUCT" | "FAKE" | "PERSONAL_INFO" | "OTHER";
+
+/** `ReviewResponse` as the seller sees it. */
+export interface Review {
+  id: string;
+  customerName: string | null;
+  customerImage: string | null;
+  rating: number;
+  comment: string | null;
+  photos: string[] | null;
+  createdAt: string;
+  updatedAt: string | null;
+  edited: boolean;
+  verifiedPurchase: boolean;
+  orderId: string | null;
+  productId: string | null;
+  productName: string | null;
+  productImage: string | null;
+  sellerReply: string | null;
+  sellerRepliedAt: string | null;
+  status: "PUBLISHED" | "HIDDEN" | string | null;
+  hiddenReason: ReviewFlagReason | string | null;
+}
+
+export interface ReviewFilters {
+  rating?: number;
+  withPhotos?: boolean;
+  replied?: boolean;
+  productId?: string;
+  sort: ReviewSort;
+}
+
+/* ---------------------------------------------------------------- support chat */
+
+export type SupportContextType = "GENERAL" | "BOOST_PAYMENT" | "PAYOUT_ISSUE" | "ORDER" | "RETURN";
+
+export interface SupportConversation {
+  id: string;
+  status: "OPEN" | "RESOLVED" | "CLOSED" | string;
+  subject: string | null;
+  contextType: SupportContextType | string | null;
+  contextRefId: string | null;
+  assignedAdminName: string | null;
+  lastMessagePreview: string | null;
+  lastMessageAt: string | null;
+  unreadCount: number;
+  createdAt: string;
+}
+
+export interface SupportMessage {
+  id: string;
+  conversationId: string;
+  senderRole: "SELLER" | "ADMIN" | "CUSTOMER" | "SYSTEM" | string;
+  senderName: string | null;
+  text: string | null;
+  /** Private file: a short-lived signed link (handover R3). */
+  attachmentUrl: string | null;
+  attachmentType: string | null;
+  createdAt: string;
+  readAt: string | null;
+}
+
+/* ---------------------------------------------------------------- notifications */
+
+export type NotificationTarget = "ORDER" | "PRODUCT" | "WALLET" | "SUPPORT" | "ACCOUNT" | "PROMO" | "CUSTOM_REQUEST" | "GOALS" | "REVIEW" | "NONE";
+
+/** `NotificationDto` (always asked for with `audience=SELLER`, forced by the proxy). */
+export interface AppNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  referenceId: string | null;
+  isRead: boolean;
+  target: NotificationTarget | string | null;
+  createdAt: string;
+}
+
+export type DiscountType = "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING";
+export type DiscountStatus = "RUNNING" | "SCHEDULED" | "EXPIRED" | "EXHAUSTED" | "DISABLED";
+
+/** `DiscountDto`. `active` is the seller's switch; `status` is what is actually happening. */
+export interface Discount {
+  id: string;
+  name: string;
+  type: DiscountType;
+  value: number;
+  startDate: string;
+  endDate: string;
+  active: boolean;
+  valid: boolean;
+  status: DiscountStatus | string;
+  currentUsage: number | null;
+  maxUsage: number | null;
+  productIds: string[];
+  productName: string | null;
+}
+
+/** `DiscountRequest` (create and update). No products means the whole store. */
+export interface DiscountRequest {
+  name: string;
+  type: DiscountType;
+  value: number;
+  startDate: string;
+  endDate: string;
+  maxUsage: number | null;
+  productIds: string[];
+}
+
+export type BoostTargetType = "STORE_BANNER" | "PRODUCT_SEARCH";
+export type BoostPaymentMethod = "WALLET" | "MANUAL_INSTAPAY" | "REWARD_CREDIT";
+export type BoostCampaignStatus = "PENDING_PAYMENT" | "ACTIVE" | "COMPLETED" | "CANCELLED_BY_ADMIN";
+
+/** `BoostPlanDto`: fixed plans set by the admins. */
+export interface BoostPlan {
+  id: string;
+  targetType: BoostTargetType;
+  name: string;
+  durationDays: number;
+  price: number;
+  isActive: boolean;
+  sortOrder: number | null;
+}
+
+/** `BoostCampaignDto`. A manual payment carries the support chat it is settled in. */
+export interface BoostCampaign {
+  id: string;
+  planId: string | null;
+  planName: string | null;
+  targetType: BoostTargetType;
+  targetRefId: string | null;
+  targetLabel: string | null;
+  priceSnapshot: number;
+  durationDaysSnapshot: number;
+  paymentMethod: BoostPaymentMethod;
+  status: BoostCampaignStatus | string;
+  startTime: string | null;
+  endTime: string | null;
+  supportConversationId: string | null;
+  createdAt: string;
+}
+
+export type GoalConditionType = "ORDERS_COMPLETED" | "TOTAL_SALES" | "AVERAGE_RATING";
+export type GoalRewardType = "PLATFORM_FEE" | "BOOST_CREDIT" | "FEATURED_PLACEMENT" | "BADGE";
+
+/** `SellerGoalResponse`: a running goal with this seller's progress, all computed server-side. */
+export interface SellerGoal {
+  goalId: string;
+  code: string;
+  title: string;
+  description: string | null;
+  conditionType: GoalConditionType | string;
+  target: number;
+  progress: number;
+  remaining: number;
+  minSample: number | null;
+  cycleNumber: number | null;
+  status: "IN_PROGRESS" | "COMPLETED";
+  completedAt: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  rewardType: GoalRewardType | string;
+  rewardValue: number | null;
+  rewardLabel: string | null;
+  rewardUses: number | null;
+  rewardValidDays: number | null;
+}
+
+/** `SellerRewardResponse`. `seen` is false until the "reward unlocked" moment was shown. */
+export interface SellerReward {
+  id: string;
+  goalId: string;
+  goalCode: string;
+  goalTitle: string;
+  rewardType: GoalRewardType | string;
+  rewardValue: number | null;
+  label: string | null;
+  status: "AVAILABLE" | "REDEEMED" | "EXPIRED";
+  grantedAt: string;
+  expiresAt: string | null;
+  redeemedOrderId: string | null;
+  redeemedOrderShortId: string | null;
+  redeemedAt: string | null;
+  savedAmount: number | null;
+  seen: boolean;
+}
+
+export interface GoalsOverview {
+  goals: SellerGoal[];
+  rewards: SellerReward[];
 }

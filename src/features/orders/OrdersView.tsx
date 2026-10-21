@@ -4,8 +4,9 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { m } from "motion/react";
-import { CaretLeft, CaretRight, FunnelSimple, MagnifyingGlass, X } from "@phosphor-icons/react";
+import { FunnelSimple, MagnifyingGlass, X } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
+import { Pager } from "@/components/ui/Pager";
 import { SelectField, TextField } from "@/components/ui/Field";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { StateView } from "@/components/ui/StateView";
@@ -102,7 +103,7 @@ export function OrdersView() {
             {formatCount(orders.data.totalElements)} طلب{orders.isFetching ? "، بنحدّث..." : ""}
           </p>
           <OrderTable orders={orders.data.content} onOpen={(id) => setParams({ open: id }, { resetPage: false })} dimmed={orders.isPlaceholderData} />
-          <Pager page={page} totalPages={orders.data.totalPages} onPage={(p) => setParams({ page: p ? String(p) : null })} />
+          <Pager label="صفحات الطلبات" page={page} totalPages={orders.data.totalPages} onPage={(p) => setParams({ page: p ? String(p) : null })} />
         </>
       )}
 
@@ -291,23 +292,6 @@ function OrderTable({ orders, onOpen, dimmed }: { orders: SellerOrder[]; onOpen:
         ))}
       </ul>
     </div>
-  );
-}
-
-function Pager({ page, totalPages, onPage }: { page: number; totalPages: number; onPage: (p: number) => void }) {
-  if (totalPages <= 1) return null;
-  return (
-    <nav aria-label="صفحات الطلبات" className="flex items-center justify-center gap-3">
-      <Button variant="quiet" onClick={() => onPage(page - 1)} disabled={page <= 0} aria-label="الصفحة اللي قبلها">
-        <CaretRight className="size-5" aria-hidden="true" />
-      </Button>
-      <span className="text-body-sm font-bold">
-        صفحة {page + 1} من {totalPages}
-      </span>
-      <Button variant="quiet" onClick={() => onPage(page + 1)} disabled={page + 1 >= totalPages} aria-label="الصفحة اللي بعدها">
-        <CaretLeft className="size-5" aria-hidden="true" />
-      </Button>
-    </nav>
   );
 }
 

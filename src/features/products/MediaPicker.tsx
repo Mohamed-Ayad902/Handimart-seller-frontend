@@ -79,7 +79,7 @@ export function MediaPicker({
           <p className="text-meta font-bold text-ink-2">صور وفيديو القطعة</p>
           <p className="text-meta text-ink-3">أول صورة هي الغلاف اللي بيشوفه العميل. لحد ١٠ صور وفيديوهات.</p>
         </div>
-        <span className="text-meta font-bold tabular-nums text-ink-2">
+        <span className="shrink-0 text-meta font-bold whitespace-nowrap tabular-nums text-ink-2">
           {count.toLocaleString("ar-EG")} من {MAX_MEDIA.toLocaleString("ar-EG")}
         </span>
       </div>

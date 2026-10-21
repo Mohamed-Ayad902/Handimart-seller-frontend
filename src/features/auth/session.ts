@@ -14,11 +14,12 @@ export function useSeller() {
 
 /**
  * Where a seller belongs, from the same fields the app's splash routes on (`SplashVM.kt`):
- * ACTIVE works in the dashboard; everyone else sees their account status. Onboarding on the web
- * is a later phase, so ONBOARDING also lands on the status page, which explains what to do.
+ * ACTIVE works in the dashboard, ONBOARDING finishes registering, everyone else sees their
+ * account status.
  */
 export function homeFor(seller: Seller | null): string {
   if (!seller) return "/login";
+  if (seller.accountStatus === "ONBOARDING") return "/register";
   return seller.accountStatus === "ACTIVE" ? "/" : "/status";
 }
 

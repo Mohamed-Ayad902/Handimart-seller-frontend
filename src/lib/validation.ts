@@ -17,6 +17,7 @@ export const MSG = {
   weakPassword: "كلمة المرور ضعيفة. لازم تكون 8 حروف على الأقل، وفيها حرف كبير وصغير، رقم، ورمز",
   otp: "كود التحقق غير صحيح، تأكد إنه 6 أرقام",
   mismatch: "كلمتين السر مش زي بعض",
+  email: "صيغة الإيميل غير صحيحة",
   tooShort: (n: number) => `الحد الأدنى ${n} أحرف`,
   tooLong: (n: number) => `الحد الأقصى ${n} حرف`,
   tooSmall: (n: number) => `لازم القيمة متقلش عن ${n}`,
@@ -29,6 +30,9 @@ export const required: Check = (v) => (v.trim() ? null : MSG.required);
 export const phone: Check = (v) => (!v.trim() ? MSG.required : PHONE.test(normalizePhone(v)) ? null : MSG.phone);
 
 export const strongPassword: Check = (v) => (!v ? MSG.required : PASSWORD.test(v) ? null : MSG.weakPassword);
+
+const EMAIL = /^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$/;
+export const email: Check = (v) => (!v.trim() ? MSG.required : EMAIL.test(v.trim()) ? null : MSG.email);
 
 export const otp: Check = (v) => {
   const code = normalizeDigits(v).trim();
@@ -67,3 +71,7 @@ export function numberCheck({ min, max = Number.MAX_SAFE_INTEGER, whole = false,
     return null;
   };
 }
+
+/** Core `URL_REGEX` / `validateOptionalUrl`: scheme optional, so "facebook.com/mystore" passes. */
+const URL = /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w\- ./?%&=]*)?$/;
+export const optionalUrl: Check = (v) => (!v.trim() || URL.test(v.trim()) ? null : "الرابط غير صحيح");

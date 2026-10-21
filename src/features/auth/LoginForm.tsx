@@ -126,7 +126,10 @@ export function LoginForm() {
       </form>
 
       <p className="mt-8 text-body-sm text-ink-2">
-        لسه معندكش متجر؟ التسجيل لسه من تطبيق البائع، وبعد ما حسابك يتفعّل تقدر تدخل من هنا.
+        لسه معندكش متجر؟{" "}
+        <Link href="/register" className="font-bold text-ink underline decoration-line-strong decoration-2 underline-offset-4 hover:decoration-primary">
+          افتح متجرك
+        </Link>
       </p>
 
       <ConfirmDialog

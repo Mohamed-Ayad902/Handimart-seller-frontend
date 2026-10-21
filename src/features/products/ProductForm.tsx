@@ -164,7 +164,7 @@ function Form({ product }: { product: Product | null }) {
     setFailure(null);
     const problem = firstProblem();
     if (problem) {
-      document.getElementById(problem)?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+      document.getElementById(`step-${problem}`)?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
       return;
     }
     const v = form.values;
@@ -392,7 +392,7 @@ function Section({ step, children }: { step: number; children: React.ReactNode }
   const s = STEPS[step]!;
   return (
     <m.section
-      id={s.id}
+      id={`step-${s.id}`}
       data-step={s.id}
       aria-labelledby={`${s.id}-title`}
       initial={{ opacity: 0, y: 24 }}
@@ -442,7 +442,7 @@ function StepRail() {
           return (
             <li key={s.id} className="relative">
               {on && <m.span layoutId="step-thread" aria-hidden="true" className="absolute -start-[1.5px] inset-y-1 w-[3px] rounded-full bg-primary" transition={{ type: "spring", stiffness: 380, damping: 34 }} />}
-              <a href={`#${s.id}`} aria-current={on ? "step" : undefined} className={`flex min-h-11 items-center gap-2 ps-5 text-body-sm transition-colors duration-quick ${on ? "font-extrabold text-ink" : "font-semibold text-ink-3 hover:text-ink"}`}>
+              <a href={`#step-${s.id}`} aria-current={on ? "step" : undefined} className={`flex min-h-11 items-center gap-2 ps-5 text-body-sm transition-colors duration-quick ${on ? "font-extrabold text-ink" : "font-semibold text-ink-3 hover:text-ink"}`}>
                 <span className="tabular-nums">{(i + 1).toLocaleString("ar-EG")}</span>
                 {s.label}
               </a>
