@@ -42,7 +42,7 @@ export const NAV: { title: string | null; items: NavItem[] }[] = [
     title: "الحساب",
     items: [
       { href: "/notifications", label: "الإشعارات", icon: Bell, soon: true },
-      { href: "/support", label: "الدعم", icon: Lifebuoy, soon: true },
+      { href: "/support", label: "الدعم", icon: Lifebuoy },
       { href: "/store", label: "متجري", icon: Gear },
     ],
   },

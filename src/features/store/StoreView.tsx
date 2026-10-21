@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { m } from "motion/react";
-import { CaretLeft, FileText, Gauge, MapPin, PencilSimple, ShieldCheck, SignOut, SunHorizon, Trash, Wallet as WalletIcon, WhatsappLogo, type Icon } from "@phosphor-icons/react";
+import { CaretLeft, FileText, Gauge, Lifebuoy, MapPin, PencilSimple, ShieldCheck, SignOut, SunHorizon, Trash, Wallet as WalletIcon, WhatsappLogo, type Icon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Dialog } from "@/components/ui/Dialog";
@@ -40,7 +40,8 @@ export function StoreView() {
       </Group>
 
       <Group title="المساعدة والسياسات">
-        <RowLink icon={WhatsappLogo} title="كلّم الدعم" body="فريق HandiMart على واتساب." href={SUPPORT} external />
+        <RowLink icon={Lifebuoy} title="كلّم الدعم" body="محادثة مع فريق HandiMart من هنا." href="/support" />
+        <RowLink icon={WhatsappLogo} title="الدعم على واتساب" body="لو مستعجل، كلّمنا على واتساب." href={SUPPORT} external />
         <RowLink icon={ShieldCheck} title="سياسة الخصوصية" href="/legal/PRIVACY_POLICY" />
         <RowLink icon={FileText} title="الشروط والأحكام" href="/legal/TERMS_OF_SERVICE" />
       </Group>

@@ -439,3 +439,33 @@ export interface ReviewFilters {
   productId?: string;
   sort: ReviewSort;
 }
+
+/* ---------------------------------------------------------------- support chat */
+
+export type SupportContextType = "GENERAL" | "BOOST_PAYMENT" | "PAYOUT_ISSUE" | "ORDER" | "RETURN";
+
+export interface SupportConversation {
+  id: string;
+  status: "OPEN" | "RESOLVED" | "CLOSED" | string;
+  subject: string | null;
+  contextType: SupportContextType | string | null;
+  contextRefId: string | null;
+  assignedAdminName: string | null;
+  lastMessagePreview: string | null;
+  lastMessageAt: string | null;
+  unreadCount: number;
+  createdAt: string;
+}
+
+export interface SupportMessage {
+  id: string;
+  conversationId: string;
+  senderRole: "SELLER" | "ADMIN" | "CUSTOMER" | "SYSTEM" | string;
+  senderName: string | null;
+  text: string | null;
+  /** Private file: a short-lived signed link (handover R3). */
+  attachmentUrl: string | null;
+  attachmentType: string | null;
+  createdAt: string;
+  readAt: string | null;
+}
