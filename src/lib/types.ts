@@ -145,6 +145,22 @@ export interface Wallet {
   payoutAccountIdentifier: string | null;
 }
 
+export type LedgerType = "ESCROW_HOLD" | "ESCROW_CANCELLED" | "EARNING" | "WITHDRAWAL" | "REFUND_DEDUCTION" | "BOOST_FEE";
+export type LedgerStatus = "PENDING" | "COMPLETED" | "REJECTED";
+
+/** `WalletLedgerResponse`: one movement on the seller's wallet, newest first. */
+export interface LedgerEntry {
+  id: string;
+  orderId: string | null;
+  type: LedgerType | string;
+  status: LedgerStatus | string;
+  amount: number;
+  description: string | null;
+  createdAt: string;
+}
+
+export type ChartRange = "LAST_7_DAYS" | "TODAY" | "LAST_MONTH" | "CUSTOM";
+
 export interface ReviewSummary {
   averageRating: number;
   totalReviews: number;
