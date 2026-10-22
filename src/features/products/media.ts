@@ -1,15 +1,17 @@
 /**
  * Media for a product, prepared in the browser before it is sent (handover risk R1).
  *
- * The site runs on Vercel, whose functions refuse request bodies above about 4.5 MB, and every
- * save carries the details and all new media in one multipart request (the backend has no
- * separate upload step). So everything is compressed here before it goes, like the app does:
- * photos to 1600px on the long side and re-encoded, videos re-encoded to H.264 at up to 720p
- * (the app's FFmpeg CRF 28 / iOS 1280x720 export) with a bitrate that fits what is left of the
- * one-request budget.
+ * The site runs on Vercel, whose functions refuse request bodies above about 4.5 MB. So
+ * everything is compressed here before it goes, like the app does: photos to 1600px on the long
+ * side and re-encoded, videos (up to a minute) re-encoded to H.264 at up to 720p (the app's
+ * FFmpeg CRF 28 / iOS 1280x720 export) with a bitrate that fits one request. The seller can pick
+ * files of any size; a save then sends the media in as many requests as it takes, each under
+ * `UPLOAD_BUDGET` (see `uploadBatches`).
  */
 export const MAX_MEDIA = 10;
+/** The most one request may carry, with room left under Vercel's ~4.5 MB for the details part. */
 export const UPLOAD_BUDGET = 4 * 1024 * 1024;
+export const VIDEO_MAX_SECONDS = 60;
 const LONG_SIDE = 1600;
 const QUALITY = 0.82;
 
@@ -27,10 +29,12 @@ export const MEDIA_MSG = {
   type: "الملف ده مش صورة أو فيديو بنقبله. استخدم JPG أو PNG أو WebP، أو فيديو MP4 أو MOV.",
   tooMany: `لحد ${MAX_MEDIA} صور وفيديوهات للقطعة.`,
   budget: "الملفات أكبر من اللي ينفع يترفع مرة واحدة (٤ ميجا). شيل فيديو أو قلّل الصور.",
+  tooBig: "الملف ده أكبر من ٤ ميجا حتى بعد الضغط. اختار ملف أصغر.",
   none: "ضيف صورة واحدة على الأقل للقطعة.",
   broken: "معرفناش نقرا الصورة دي. جرّب صورة تانية.",
   videoBroken: "معرفناش نقرا الفيديو ده. جرّب فيديو تاني.",
-  videoLong: "الفيديو أطول من اللي ينفع يترفع. قصّره أو اختار فيديو أقصر.",
+  videoLong: "الفيديو لازم يكون دقيقة (٦٠ ثانية) أو أقل. قصّره واختاره تاني.",
+  videoNoEncoder: "المتصفح ده مبيعرفش يضغط الفيديو، والفيديو أكبر من ٤ ميجا. جرّب من Chrome أو Edge أو اختار فيديو أصغر.",
 } as const;
 
 export function mediaKind(file: File): "IMAGE" | "VIDEO" | null {
@@ -67,29 +71,28 @@ export async function compressImage(file: File): Promise<File> {
 
 const VIDEO_LONG_SIDE = 1280;
 const VIDEO_MAX_BPS = 2_500_000;
-const VIDEO_MIN_BPS = 350_000;
 const AUDIO_BPS = 96_000;
 
 /**
- * Re-encodes a video in the browser (WebCodecs, through mediabunny) to H.264/AAC MP4, at most
- * 1280px on the long side, with a bitrate chosen so the result fits `budget` bytes. Throws
- * `MEDIA_MSG.videoLong` when even the lowest bitrate can't fit. Browsers without WebCodecs get
- * the original back, and the budget check decides.
+ * Checks a video is at most `VIDEO_MAX_SECONDS` long (throws `MEDIA_MSG.videoLong`), then
+ * re-encodes it in the browser (WebCodecs, through mediabunny) to H.264/AAC MP4, at most 1280px
+ * on the long side, with a bitrate chosen so the result fits one request. Browsers without
+ * WebCodecs get the original back when it already fits, else `MEDIA_MSG.videoNoEncoder`.
  */
-export async function compressVideo(file: File, budget: number, onProgress?: (ratio: number) => void): Promise<File> {
-  if (typeof VideoEncoder === "undefined") return file;
+export async function compressVideo(file: File, onProgress?: (ratio: number) => void): Promise<File> {
   const mb = await import("mediabunny");
   const input = new mb.Input({ source: new mb.BlobSource(file), formats: mb.ALL_FORMATS });
   try {
     const track = await input.getPrimaryVideoTrack();
     if (!track) throw new Error(MEDIA_MSG.videoBroken);
     const seconds = await input.computeDuration();
-    // 4% for the container, the rest split between picture and sound.
-    const bps = Math.min(VIDEO_MAX_BPS, Math.floor((budget * 8 * 0.96) / Math.max(1, seconds)) - AUDIO_BPS);
-    if (bps < VIDEO_MIN_BPS) {
-      if (file.size <= budget) return file;
-      throw new Error(MEDIA_MSG.videoLong);
+    if (seconds > VIDEO_MAX_SECONDS + 0.5) throw new Error(MEDIA_MSG.videoLong);
+    if (typeof VideoEncoder === "undefined") {
+      if (file.size <= UPLOAD_BUDGET) return file;
+      throw new Error(MEDIA_MSG.videoNoEncoder);
     }
+    // 12% for the container and encoder overshoot, the rest split between picture and sound. A minute still gets ~400 kbps.
+    const bps = Math.min(VIDEO_MAX_BPS, Math.floor((UPLOAD_BUDGET * 8 * 0.88) / Math.max(1, seconds)) - AUDIO_BPS);
     const landscape = track.displayWidth >= track.displayHeight;
     const shrink = Math.max(track.displayWidth, track.displayHeight) > VIDEO_LONG_SIDE;
     const output = new mb.Output({ format: new mb.Mp4OutputFormat({ fastStart: "in-memory" }), target: new mb.BufferTarget() });
@@ -100,7 +103,10 @@ export async function compressVideo(file: File, budget: number, onProgress?: (ra
       audio: { codec: "aac", quality: new mb.Quality({ bitrate: AUDIO_BPS }) },
       showWarnings: false,
     });
-    if (!conversion.isValid) return file;
+    if (!conversion.isValid) {
+      if (file.size <= UPLOAD_BUDGET) return file;
+      throw new Error(MEDIA_MSG.videoNoEncoder);
+    }
     if (onProgress) conversion.onProgress = (p) => onProgress(p);
     await conversion.execute();
     const buffer = output.target.buffer;
@@ -110,6 +116,23 @@ export async function compressVideo(file: File, budget: number, onProgress?: (ra
   } finally {
     input.dispose();
   }
+}
+
+/** Splits files, in order, into groups that each fit one request. A file is never larger than the budget (the picker checks). */
+export function uploadBatches(files: File[]): File[][] {
+  const batches: File[][] = [];
+  let size = 0;
+  for (const file of files) {
+    const last = batches[batches.length - 1];
+    if (last && size + file.size <= UPLOAD_BUDGET) {
+      last.push(file);
+      size += file.size;
+    } else {
+      batches.push([file]);
+      size = file.size;
+    }
+  }
+  return batches;
 }
 
 export function totalBytes(items: { file: File }[]): number {

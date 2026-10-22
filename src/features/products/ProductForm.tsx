@@ -15,10 +15,10 @@ import { useForm } from "@/hooks/useForm";
 import { ApiError } from "@/lib/client/api";
 import { SHIPPING_FLAGS, type Customization, type Product, type ProductMedia, type ProductRequest, type ProductType, type ShippingFlag } from "@/lib/types";
 import { MSG, numberCheck, parseNumber, text } from "@/lib/validation";
-import { flattenCategories, useCategories, useProduct, useSaveProduct } from "./api";
+import { PartialSaveError, flattenCategories, useCategories, useProduct, useSaveProduct } from "./api";
 import { CustomizationEditor } from "./CustomizationEditor";
 import { FLAG, TYPE } from "./labels";
-import { MEDIA_MSG, UPLOAD_BUDGET, totalBytes, type PickedMedia } from "./media";
+import { MEDIA_MSG, type PickedMedia } from "./media";
 import { MediaPicker } from "./MediaPicker";
 import { E, useTrackOpen } from "@/lib/observability/analytics";
 
@@ -160,7 +160,6 @@ function Form({ product }: { product: Product | null }) {
       return bad ? FIELD_STEP[bad] : "piece";
     }
     if (flags.length === 0) return "shipping";
-    if (totalBytes(picked) > UPLOAD_BUDGET) return "piece";
     return null;
   };
 
@@ -196,7 +195,10 @@ function Form({ product }: { product: Product | null }) {
           router.push(`/products/${saved?.id ?? product?.id ?? ""}`);
         },
         onError: (err) => {
-          if (err instanceof ApiError) {
+          if (err instanceof PartialSaveError) {
+            toast.show(`اتحفظت القطعة، بس ${err.missing.toLocaleString("ar-EG")} من الصور والفيديو مترفعوش. ضيفهم تاني من التعديل.`);
+            router.push(`/products/${err.productId}`);
+          } else if (err instanceof ApiError) {
             const mapped = Object.fromEntries(Object.entries(err.fields).flatMap(([k, msg]) => (SERVER_FIELDS[k] ? [[SERVER_FIELDS[k], msg]] : [])));
             form.setServerErrors(mapped);
             setFailure(err.status === 413 ? MEDIA_MSG.budget : err.message);
