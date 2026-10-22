@@ -20,6 +20,8 @@ import { CustomizationEditor } from "./CustomizationEditor";
 import { FLAG, TYPE } from "./labels";
 import { MEDIA_MSG, UPLOAD_BUDGET, totalBytes, type PickedMedia } from "./media";
 import { MediaPicker } from "./MediaPicker";
+import { PriceSuggestionPanel, type UsedSuggestion } from "./PriceSuggestion";
+import { useAcceptPrice, type PriceSuggestionRequest } from "./pricing";
 
 const STEPS = [
   { id: "piece", label: "القطعة", title: "عرّف العملاء بالقطعة", body: "صور واضحة واسم وحكاية قصيرة: ده اللي بيبيع." },
@@ -121,9 +123,35 @@ function Form({ product }: { product: Product | null }) {
   const [submitted, setSubmitted] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const usedSuggestion = useRef<UsedSuggestion | null>(null);
+  const linkSuggestion = useAcceptPrice();
 
   const type = form.values.productType as ProductType;
   const mediaError = submitted && existing.length + picked.length === 0 ? MEDIA_MSG.none : null;
+  const currentPrice = CHECKS.price(form.values.price) === null ? parseNumber(form.values.price) : null;
+
+  // What moves the price, as filled in so far. Blank or invalid numbers are left out, never guessed.
+  const pricingRequest = useMemo((): Omit<PriceSuggestionRequest, "costs"> | null => {
+    const v = form.values;
+    if (!product && !v.categoryId) return null;
+    const positive = (raw: string) => {
+      const n = parseNumber(raw);
+      return n !== null && n > 0 && !dimension(raw) ? n : undefined;
+    };
+    return {
+      productId: product?.id,
+      categoryId: v.categoryId || undefined,
+      productType: v.productType as ProductType,
+      weightKg: positive(v.weight),
+      lengthCm: positive(v.length),
+      widthCm: positive(v.width),
+      heightCm: positive(v.height),
+      // The backend caps this at 50.
+      customizationCount: Math.min(customizations.length, 50),
+      shippingFlags: flags,
+    };
+  }, [product, form.values, customizations.length, flags]);
+
   const flagsError = submitted && flags.length === 0 ? "اختار ملاحظة شحن واحدة على الأقل." : null;
 
   // Leaving with unsaved work asks first (browser prompt); in-app links are plain navigations.
@@ -186,6 +214,12 @@ function Form({ product }: { product: Product | null }) {
       { id: product?.id ?? null, body, files: picked.map((p) => p.file), removeMediaIds: removed },
       {
         onSuccess: (saved) => {
+          // A new piece had no id when the suggestion was used: link the two now that it has one,
+          // as long as the saved price is still the suggested one. Best effort; the save stands either way.
+          const used = usedSuggestion.current;
+          if (!editing && saved?.id && used && body.price === used.price) {
+            linkSuggestion.mutate({ suggestionId: used.suggestionId, chosenPrice: used.price, productId: saved.id });
+          }
           toast.show(editing ? "اتحفظت التعديلات، والقطعة رجعت للمراجعة" : "القطعة اتبعتت للمراجعة، وهتظهر للعملاء أول ما تتقبل");
           router.push(`/products/${saved?.id ?? product?.id ?? ""}`);
         },
@@ -304,6 +338,19 @@ function Form({ product }: { product: Product | null }) {
                 </div>
               )}
             </div>
+
+            <PriceSuggestionPanel
+              request={pricingRequest}
+              productId={product?.id ?? null}
+              currentPrice={currentPrice}
+              onUse={(price) => {
+                setDirty(true);
+                form.set("price", price);
+              }}
+              onUsedChange={(used) => {
+                usedSuggestion.current = used;
+              }}
+            />
           </Section>
 
           <Section step={2}>

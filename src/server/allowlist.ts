@@ -33,6 +33,10 @@ const rules: Array<[string, RegExp]> = [
   ["PATCH", new RegExp(`^/seller/products/${ID}/(stock|activate|deactivate)$`)],
   ["PATCH", /^\/seller\/products\/capacity$/],
 
+  // Selling price suggestion
+  ["POST", /^\/seller\/pricing\/suggest$/],
+  ["POST", new RegExp(`^/seller/pricing/suggestions/${ID}/accept$`)],
+
   // Discounts
   ["GET", /^\/seller\/discounts$/],
   ["POST", /^\/seller\/discounts$/],
