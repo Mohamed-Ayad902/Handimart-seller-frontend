@@ -9,7 +9,8 @@ import { normalizeDigits, normalizePhone } from "./phone";
 export type Check = (value: string) => string | null;
 
 const PHONE = /^01[0125][0-9]{8}$/;
-const PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+/** Upper and lower case letter, digit and any symbol (not only @$!%*?&: "#" or "_" count too), no spaces. */
+const PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s])\S{8,}$/;
 
 export const MSG = {
   required: "الحقل ده مطلوب",
