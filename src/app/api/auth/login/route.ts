@@ -9,5 +9,5 @@ export async function POST(request: NextRequest) {
   if (typeof body?.phone !== "string" || !PHONE.test(body.phone) || typeof body.password !== "string" || !body.password || body.password.length > 128) {
     return fail(400, MSG.badInput);
   }
-  return authRoute(request, { backendPath: "/auth/seller/login", purpose: "login", limit: 15, body: { phone: body.phone, password: body.password }, sessionFromReply: true });
+  return authRoute(request, { backendPath: "/auth/seller/login", purpose: "login", limit: 15, body: { phone: body.phone, password: body.password }, sessionFromReply: true, unauthorizedMessage: MSG.badLogin });
 }
