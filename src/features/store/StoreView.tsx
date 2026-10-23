@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { m } from "motion/react";
-import { CaretLeft, FileText, Gauge, Lifebuoy, MapPin, PencilSimple, ShieldCheck, SignOut, SunHorizon, Trash, Wallet as WalletIcon, WhatsappLogo, type Icon } from "@phosphor-icons/react";
+import { BellRinging, CaretLeft, FileText, Gauge, Lifebuoy, MapPin, PencilSimple, ShieldCheck, SignOut, SunHorizon, Trash, Wallet as WalletIcon, WhatsappLogo, type Icon } from "@phosphor-icons/react";
 import { Switch } from "@/components/ui/Switch";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -18,6 +18,7 @@ import type { PayoutMethod, Seller } from "@/lib/types";
 import { numberCheck, parseNumber, text } from "@/lib/validation";
 import { deletionPending, useLogout, useSeller } from "@/features/auth/session";
 import { useWallet } from "@/features/home/api";
+import { enablePush, pushOn, pushState, subscribePush, turnOffPush, type PushState } from "@/lib/observability/push";
 import { PAYOUT, useRequestDeletion, useSaveCapacity, useSavePayout, useVacationMode } from "./api";
 
 const SUPPORT = `https://wa.me/201289303016?text=${encodeURIComponent("أهلاً، كنت محتاج مساعدة بخصوص متجري على HandiMart.")}`;
@@ -39,6 +40,8 @@ export function StoreView() {
       <Group title="المالية">
         <PayoutRow />
       </Group>
+
+      <PushGroup />
 
       <Group title="المساعدة والسياسات">
         <RowLink icon={Lifebuoy} title="كلّم الدعم" body="محادثة مع فريق HandiMart من هنا." href="/support" />
@@ -129,6 +132,55 @@ function RowLink({ icon, title, body, href, external = false }: { icon: Icon; ti
         </Link>
       )}
     </li>
+  );
+}
+
+/**
+ * Browser notifications for new orders, requests and messages (the app's notifications switch).
+ * Hidden where the browser can't do push at all.
+ */
+function PushGroup() {
+  const toast = useToast();
+  // Permission lives in the browser: read on the client only, "unsupported" while rendering on the server.
+  const state = useSyncExternalStore(subscribePush, pushState, () => "unsupported" as PushState);
+  const on = useSyncExternalStore(subscribePush, pushOn, () => false);
+  const [busy, setBusy] = useState(false);
+
+  if (state === "unsupported") return null;
+
+  const toggle = async () => {
+    setBusy(true);
+    try {
+      if (on) {
+        await turnOffPush();
+        toast.show("وقفنا إشعارات المتصفح هنا.");
+      } else {
+        const next = await enablePush();
+        if (next === "granted") toast.show("هيوصلك إشعار بكل طلب جديد، حتى والموقع مقفول.");
+        else if (next === "denied") toast.show("المتصفح رفض الإشعارات. تقدر تسمح بيها من إعدادات الموقع في المتصفح.", { tone: "error" });
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Group title="الإشعارات">
+      <li className={rowClass.replace("hover:bg-paper", "")}>
+        <RowShell
+          icon={BellRinging}
+          title="إشعارات المتصفح"
+          body={
+            state === "denied"
+              ? "الإشعارات مقفولة من المتصفح. اسمح بيها من إعدادات الموقع (جنب العنوان) وارجع هنا."
+              : on
+                ? "هيوصلك إشعار بالطلبات الجديدة وطلبات التفصيل والرسايل، حتى والموقع مقفول."
+                : "شغّلها عشان متفوّتش طلب وانت مش فاتح الموقع."
+          }
+          end={<Switch on={on} busy={busy || state === "denied"} label="إشعارات المتصفح" onToggle={() => void toggle()} />}
+        />
+      </li>
+    </Group>
   );
 }
 

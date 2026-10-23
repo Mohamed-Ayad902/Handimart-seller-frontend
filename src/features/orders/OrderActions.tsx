@@ -45,7 +45,7 @@ export function OrderActions({ order, className = "" }: { order: SellerOrder; cl
     }
     setProblem(null);
     update.mutate(
-      { id: order.id, change: { status: move.target, comment: move.needsReason ? reason.trim() : undefined } },
+      { id: order.id, from: order.status, change: { status: move.target, comment: move.needsReason ? reason.trim() : undefined } },
       {
         onSuccess: () => {
           setMove(null);

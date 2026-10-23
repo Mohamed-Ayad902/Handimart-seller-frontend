@@ -6,12 +6,12 @@ import { AnimatePresence, m } from "motion/react";
 import { ImagesSquare, Play, Trash, UploadSimple } from "@phosphor-icons/react";
 import { Spinner } from "@/components/ui/ConfirmDialog";
 import type { ProductMedia } from "@/lib/types";
-import { MAX_MEDIA, MEDIA_MSG, UPLOAD_BUDGET, compressImage, formatMB, mediaKind, totalBytes, type PickedMedia } from "./media";
+import { MAX_MEDIA, MEDIA_MSG, UPLOAD_BUDGET, VIDEO_MAX_SECONDS, compressImage, compressVideo, formatMB, mediaKind, totalBytes, type PickedMedia } from "./media";
 
 /**
  * Photos and videos of a piece: the ones already saved (edit) and the new ones picked here.
- * New photos are compressed as they are added; the meter shows how much of the one-request
- * budget they use. The first item is the cover customers see.
+ * New photos and videos are compressed as they are added, whatever size they were picked at; a
+ * save sends them in as many requests as it takes. The first item is the cover customers see.
  */
 export function MediaPicker({
   existing,
@@ -29,6 +29,7 @@ export function MediaPicker({
   const inputId = useId();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const count = existing.length + picked.length;
@@ -54,13 +55,25 @@ export function MediaPicker({
       const prepared: PickedMedia[] = [];
       for (const file of list) {
         const kind = mediaKind(file)!;
-        const ready = kind === "IMAGE" ? await compressImage(file).catch(() => null) : file;
-        if (!ready) return setProblem(MEDIA_MSG.broken);
+        let ready: File | null;
+        if (kind === "IMAGE") ready = await compressImage(file).catch(() => null);
+        else {
+          setProgress(0);
+          try {
+            ready = await compressVideo(file, setProgress);
+          } catch (error) {
+            prepared.forEach((p) => URL.revokeObjectURL(p.preview));
+            const known: string[] = [MEDIA_MSG.videoLong, MEDIA_MSG.videoNoEncoder];
+            return setProblem(error instanceof Error && known.includes(error.message) ? error.message : MEDIA_MSG.videoBroken);
+          } finally {
+            setProgress(null);
+          }
+        }
+        if (!ready || ready.size > UPLOAD_BUDGET) {
+          prepared.forEach((p) => URL.revokeObjectURL(p.preview));
+          return setProblem(ready ? MEDIA_MSG.tooBig : MEDIA_MSG.broken);
+        }
         prepared.push({ key: `${Date.now()}-${prepared.length}-${file.name}`, file: ready, kind, preview: URL.createObjectURL(ready) });
-      }
-      if (used + totalBytes(prepared) > UPLOAD_BUDGET) {
-        prepared.forEach((p) => URL.revokeObjectURL(p.preview));
-        return setProblem(MEDIA_MSG.budget);
       }
       onPickedChange([...picked, ...prepared]);
     } finally {
@@ -70,14 +83,13 @@ export function MediaPicker({
   };
 
   const shown = problem ?? error;
-  const ratio = Math.min(1, used / UPLOAD_BUDGET);
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-end justify-between gap-3">
         <div>
           <p className="text-meta font-bold text-ink-2">صور وفيديو القطعة</p>
-          <p className="text-meta text-ink-3">أول صورة هي الغلاف اللي بيشوفه العميل. لحد ١٠ صور وفيديوهات.</p>
+          <p className="text-meta text-ink-3">أول صورة هي الغلاف اللي بيشوفه العميل. لحد ١٠ صور وفيديوهات، والفيديو لحد {VIDEO_MAX_SECONDS.toLocaleString("ar-EG")} ثانية. بنضغطهم قبل الرفع.</p>
         </div>
         <span className="shrink-0 text-meta font-bold whitespace-nowrap tabular-nums text-ink-2">
           {count.toLocaleString("ar-EG")} من {MAX_MEDIA.toLocaleString("ar-EG")}
@@ -112,7 +124,7 @@ export function MediaPicker({
               }`}
             >
               {busy ? <Spinner className="size-6" /> : count ? <UploadSimple className="size-6" aria-hidden="true" /> : <ImagesSquare className="size-7" aria-hidden="true" />}
-              {busy ? "بنجهّز الصور" : "ضيف صور"}
+              {progress !== null ? `بنضغط الفيديو ${Math.round(progress * 100).toLocaleString("ar-EG")}٪` : busy ? "بنجهّز الصور" : "ضيف صور"}
             </label>
             <input
               ref={input}
@@ -130,14 +142,9 @@ export function MediaPicker({
       </ul>
 
       {picked.length > 0 && (
-        <div className="flex items-center gap-3" aria-label="حجم الملفات الجديدة">
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-sunken">
-            <div className={`h-full rounded-full transition-[width] duration-standard ease-soft ${ratio > 0.85 ? "bg-warning" : "bg-primary"}`} style={{ width: `${ratio * 100}%` }} />
-          </div>
-          <span className="text-meta tabular-nums text-ink-3">
-            {formatMB(used)} من {formatMB(UPLOAD_BUDGET)}
-          </span>
-        </div>
+        <p className="text-meta tabular-nums text-ink-3">
+          حجم الملفات الجديدة بعد الضغط {formatMB(used)}
+        </p>
       )}
 
       {shown && (

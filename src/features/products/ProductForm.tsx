@@ -15,11 +15,12 @@ import { useForm } from "@/hooks/useForm";
 import { ApiError } from "@/lib/client/api";
 import { SHIPPING_FLAGS, type Customization, type Product, type ProductMedia, type ProductRequest, type ProductType, type ShippingFlag } from "@/lib/types";
 import { MSG, numberCheck, parseNumber, text } from "@/lib/validation";
-import { flattenCategories, useCategories, useProduct, useSaveProduct } from "./api";
+import { PartialSaveError, flattenCategories, useCategories, useProduct, useSaveProduct } from "./api";
 import { CustomizationEditor } from "./CustomizationEditor";
 import { FLAG, TYPE } from "./labels";
-import { MEDIA_MSG, UPLOAD_BUDGET, totalBytes, type PickedMedia } from "./media";
+import { MEDIA_MSG, type PickedMedia } from "./media";
 import { MediaPicker } from "./MediaPicker";
+import { E, useTrackOpen } from "@/lib/observability/analytics";
 import { PriceSuggestionPanel, type UsedSuggestion } from "./PriceSuggestion";
 import { useAcceptPrice, type PriceSuggestionRequest } from "./pricing";
 
@@ -87,8 +88,13 @@ function initialValues(p: Product | null): Record<Field, string> {
 }
 
 /** New piece, or edit of an existing one (loaded from the seller's list: there is no GET-by-id). */
+function NewProduct() {
+  useTrackOpen(E.PRODUCT_CREATION_STARTED);
+  return <Form product={null} />;
+}
+
 export function ProductForm({ id }: { id: string | null }) {
-  if (!id) return <Form product={null} />;
+  if (!id) return <NewProduct />;
   return <EditLoader id={id} />;
 }
 
@@ -182,7 +188,6 @@ function Form({ product }: { product: Product | null }) {
       return bad ? FIELD_STEP[bad] : "piece";
     }
     if (flags.length === 0) return "shipping";
-    if (totalBytes(picked) > UPLOAD_BUDGET) return "piece";
     return null;
   };
 
@@ -210,21 +215,26 @@ function Form({ product }: { product: Product | null }) {
       attributes: {},
       customizations: customizations.map(({ label, required, values }) => ({ label, required, values: values.map(({ value, additionalPrice, additionalTimeMinutes }) => ({ value, additionalPrice: additionalPrice ?? 0, additionalTimeMinutes: additionalTimeMinutes ?? 0 })) })),
     };
+    // A new piece had no id when the suggestion was used: link the two now that it has one,
+    // as long as the saved price is still the suggested one. Best effort; the save stands either way.
+    const linkNewPiece = (productId: string) => {
+      const used = usedSuggestion.current;
+      if (!editing && used && body.price === used.price) linkSuggestion.mutate({ suggestionId: used.suggestionId, chosenPrice: used.price, productId });
+    };
     save.mutate(
       { id: product?.id ?? null, body, files: picked.map((p) => p.file), removeMediaIds: removed },
       {
         onSuccess: (saved) => {
-          // A new piece had no id when the suggestion was used: link the two now that it has one,
-          // as long as the saved price is still the suggested one. Best effort; the save stands either way.
-          const used = usedSuggestion.current;
-          if (!editing && saved?.id && used && body.price === used.price) {
-            linkSuggestion.mutate({ suggestionId: used.suggestionId, chosenPrice: used.price, productId: saved.id });
-          }
+          if (saved?.id) linkNewPiece(saved.id);
           toast.show(editing ? "اتحفظت التعديلات، والقطعة رجعت للمراجعة" : "القطعة اتبعتت للمراجعة، وهتظهر للعملاء أول ما تتقبل");
           router.push(`/products/${saved?.id ?? product?.id ?? ""}`);
         },
         onError: (err) => {
-          if (err instanceof ApiError) {
+          if (err instanceof PartialSaveError) {
+            linkNewPiece(err.productId);
+            toast.show(`اتحفظت القطعة، بس ${err.missing.toLocaleString("ar-EG")} من الصور والفيديو مترفعوش. ضيفهم تاني من التعديل.`);
+            router.push(`/products/${err.productId}`);
+          } else if (err instanceof ApiError) {
             const mapped = Object.fromEntries(Object.entries(err.fields).flatMap(([k, msg]) => (SERVER_FIELDS[k] ? [[SERVER_FIELDS[k], msg]] : [])));
             form.setServerErrors(mapped);
             setFailure(err.status === 413 ? MEDIA_MSG.budget : err.message);

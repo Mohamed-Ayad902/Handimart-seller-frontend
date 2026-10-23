@@ -2,31 +2,24 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { ChatCircleDots, SignOut } from "@phosphor-icons/react";
+import { ChatCircleDots, PencilSimple, SignOut } from "@phosphor-icons/react";
 import { LogoMark } from "@/components/brand/LogoMark";
 import { Illustration } from "@/components/brand/Illustration";
-import { Button, buttonClass } from "@/components/ui/Button";
+import { Button, ButtonLink, buttonClass } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Stitch } from "@/components/ui/Stitch";
 import { formatDate } from "@/lib/format";
-import type { RejectionReason, Seller } from "@/lib/types";
+import type { Seller } from "@/lib/types";
+import { REASONS } from "@/features/account-status/reasons";
 import { homeFor, useLogout, useSeller } from "@/features/auth/session";
 
 const SUPPORT = `https://wa.me/201289303016?text=${encodeURIComponent("أهلاً، كنت محتاج مساعدة بخصوص حساب التاجر بتاعي.")}`;
 
-const REASONS: Record<RejectionReason, string> = {
-  INCOMPLETE_PERSONAL_INFO: "بياناتك الشخصية مش كاملة، يا ريت تكملها عشان نقدر نقبل طلبك.",
-  INVALID_DOCUMENTS: "الصور والمستندات اللي رفعتها مش واضحة، يا ريت تصورها وترفعها تاني بوضوح.",
-  FRAUDULENT_ACTIVITY: "علقنا الحساب مؤقتاً عشان لاحظنا نشاط غريب أو مخالف لنظام المنصة.",
-  STORE_POLICY_VIOLATION: "عفواً، المتجر بيخالف بعض الشروط والسياسات الخاصة بينا.",
-  LOW_QUALITY_STORE_ASSETS: "جودة صور المتجر (اللوجو أو الكفر) ضعيفة شوية، يا ريت تغيرها لصور أوضح عشان تليق بمتجرك.",
-  OTHER: "عفواً، تم رفض طلبك. تقدر تراجع تعليق الإدارة تحت عشان تعرف التفاصيل.",
-};
 
 function copyFor(seller: Seller) {
   switch (seller.accountStatus) {
     case "REJECTED":
-      return { kicker: "رجّعناه بملاحظات", title: "طلبك محتاج شوية تعديلات", body: "راجعنا طلبك، وفيه شوية تفاصيل محتاجة تتعدل قبل ما نفتح متجرك. التعديل من تطبيق البائع، وبعد ما تبعته هنراجعه تاني.", art: "cutThread" as const };
+      return { kicker: "رجّعناه بملاحظات", title: "طلبك محتاج شوية تعديلات", body: "راجعنا طلبك، وفيه شوية تفاصيل محتاجة تتعدل قبل ما نفتح متجرك. عدّل اللي محتاج يتعدل من هنا، وابعته وهنراجعه تاني.", art: "cutThread" as const };
     case "SUSPENDED":
       return { kicker: "وقفة مؤقتة", title: "حسابك موقوف مؤقتاً", body: "وقفنا حسابك مؤقتاً عشان فيه مخالفة لسياسات المنصة.", art: "tangledThread" as const };
     case "ONBOARDING":
@@ -143,10 +136,18 @@ function Status({ seller }: { seller: Seller }) {
       )}
 
       <Stitch className="my-8" />
-      <a href={SUPPORT} target="_blank" rel="noopener noreferrer" className={buttonClass("secondary", "w-full sm:w-auto")}>
-        <ChatCircleDots className="size-5" aria-hidden="true" />
-        كلم الدعم
-      </a>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        {seller.accountStatus === "REJECTED" && (
+          <ButtonLink href="/register" className="w-full sm:w-auto">
+            <PencilSimple className="size-5" aria-hidden="true" />
+            عدّل طلبك
+          </ButtonLink>
+        )}
+        <a href={SUPPORT} target="_blank" rel="noopener noreferrer" className={buttonClass(seller.accountStatus === "REJECTED" ? "quiet" : "secondary", "w-full sm:w-auto")}>
+          <ChatCircleDots className="size-5" aria-hidden="true" />
+          كلم الدعم
+        </a>
+      </div>
     </section>
   );
 }

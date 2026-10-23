@@ -4,6 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { api, upload } from "@/lib/client/api";
 import type { CustomRequest, Page } from "@/lib/types";
 import { homeKeys } from "@/features/home/api";
+import { E, tracked } from "@/lib/observability/analytics";
 
 const PAGE = 20;
 
@@ -50,11 +51,11 @@ export function useRequestStep(id: string) {
       onSuccess: done,
     }),
     offer: useMutation({
-      mutationFn: ({ offer, photos }: { offer: OfferInput; photos: File[] }) => upload<CustomRequest>(`/seller/custom-requests/${id}/offer`, offer, photos, { fileField: "photos" }),
+      mutationFn: ({ offer, photos }: { offer: OfferInput; photos: File[] }) => tracked(upload<CustomRequest>(`/seller/custom-requests/${id}/offer`, offer, photos, { fileField: "photos" }), E.CUSTOM_REQUEST_OFFER_SENT, { custom_request_id: id, photo_count: photos.length }),
       onSuccess: done,
     }),
     decline: useMutation({
-      mutationFn: (text: string) => api.post<CustomRequest>(`/seller/custom-requests/${id}/decline`, { text }),
+      mutationFn: (text: string) => tracked(api.post<CustomRequest>(`/seller/custom-requests/${id}/decline`, { text }), E.CUSTOM_REQUEST_DECLINED, { custom_request_id: id, declined_by: "seller" }),
       onSuccess: done,
     }),
   };

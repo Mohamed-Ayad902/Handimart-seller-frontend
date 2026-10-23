@@ -4,6 +4,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import { api } from "@/lib/client/api";
 import type { ChartRange, LedgerEntry, Page, PayoutRequest } from "@/lib/types";
 import { homeKeys, type EarningsBucket } from "@/features/home/api";
+import { E, tracked } from "@/lib/observability/analytics";
 
 const LEDGER_PAGE = 20;
 
@@ -53,7 +54,7 @@ export function usePayoutRequests() {
 export function useRequestPayout() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (amount: number) => api.post<unknown>("/seller/finance/payouts/request", { amount }),
+    mutationFn: (amount: number) => tracked(api.post<unknown>("/seller/finance/payouts/request", { amount }), E.PAYOUT_REQUESTED, { amount }),
     onSettled: () => {
       void client.invalidateQueries({ queryKey: homeKeys.wallet });
       void client.invalidateQueries({ queryKey: walletKeys.ledger });

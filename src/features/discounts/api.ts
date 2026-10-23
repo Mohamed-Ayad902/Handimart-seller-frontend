@@ -4,6 +4,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import { api } from "@/lib/client/api";
 import type { Discount, DiscountRequest, Page, Product } from "@/lib/types";
 import { productKeys } from "@/features/products/api";
+import { E, tracked } from "@/lib/observability/analytics";
 
 export const discountKeys = {
   all: ["discounts"] as const,
@@ -41,7 +42,7 @@ function useInvalidate() {
 export function useSaveDiscount() {
   const done = useInvalidate();
   return useMutation({
-    mutationFn: ({ id, body }: { id: string | null; body: DiscountRequest }) => (id ? api.put<Discount>(`/seller/discounts/${id}`, body) : api.post<Discount>("/seller/discounts", body)),
+    mutationFn: ({ id, body }: { id: string | null; body: DiscountRequest }) => (id ? api.put<Discount>(`/seller/discounts/${id}`, body) : tracked(api.post<Discount>("/seller/discounts", body), E.DISCOUNT_CREATED, { type: body.type })),
     onSuccess: done,
   });
 }

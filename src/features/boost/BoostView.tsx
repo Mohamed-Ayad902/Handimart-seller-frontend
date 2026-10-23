@@ -20,6 +20,7 @@ import type { BoostCampaign, BoostPaymentMethod, BoostPlan, BoostTargetType, Pro
 import { useWallet } from "@/features/home/api";
 import { cover } from "@/features/products/labels";
 import { useBoostCampaigns, useBoostPlans, useBoostableProducts, usePurchaseBoost } from "./api";
+import { E, track, useTrackOpen } from "@/lib/observability/analytics";
 
 const ID = /^[0-9a-fA-F-]{36}$/;
 
@@ -44,6 +45,7 @@ const PAID_WITH: Record<string, string> = {
 const days = (n: number) => (n === 1 ? "يوم واحد" : n === 2 ? "يومين" : n <= 10 ? `${n} أيام` : `${n} يوم`);
 
 export function BoostView() {
+  useTrackOpen(E.BOOST_SCREEN_OPENED);
   const params = useSearchParams();
   const preset = params.get("product");
   const [target, setTarget] = useState<BoostTargetType>(preset && ID.test(preset) ? "PRODUCT_SEARCH" : "STORE_BANNER");
@@ -86,6 +88,7 @@ export function BoostView() {
                     onClick={() => {
                       if (on) return;
                       setTarget(t.type);
+                      track(E.BOOST_TARGET_SELECTED, { target_type: t.type });
                       setPlanId(null);
                     }}
                     className={`group relative flex items-start gap-4 overflow-hidden rounded-image border-[1.5px] p-5 text-start transition-[border-color,background-color,transform] duration-standard ease-soft hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 ${on ? "border-secondary bg-secondary text-on-secondary" : "border-line bg-surface hover:border-ink"}`}
@@ -123,7 +126,10 @@ export function BoostView() {
             ) : (
               <div role="radiogroup" aria-labelledby="boost-plans" className="grid gap-3 sm:grid-cols-3">
                 {plans.data.map((p) => (
-                  <PlanCard key={p.id} plan={p} on={p.id === planId} onPick={() => setPlanId(p.id)} />
+                  <PlanCard key={p.id} plan={p} on={p.id === planId} onPick={() => {
+                    setPlanId(p.id);
+                    track(E.BOOST_PLAN_CLICKED, { plan_id: p.id, price: p.price });
+                  }} />
                 ))}
               </div>
             )}

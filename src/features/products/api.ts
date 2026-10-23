@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { api, upload } from "@/lib/client/api";
 import type { Category, Page, Product, ProductRequest } from "@/lib/types";
+import { E, tracked } from "@/lib/observability/analytics";
+import { uploadBatches } from "./media";
 
 /** Large pages: the backend has no search or status filter here, so the list filters what it has loaded (as the app does). */
 export const PAGE_SIZE = 50;
@@ -61,7 +63,7 @@ function useReplaceProduct() {
 export function useSetActive() {
   const replace = useReplaceProduct();
   return useMutation({
-    mutationFn: ({ id, active }: { id: string; active: boolean }) => api.patch<Product>(`/seller/products/${id}/${active ? "activate" : "deactivate"}`),
+    mutationFn: ({ id, active }: { id: string; active: boolean }) => tracked(api.patch<Product>(`/seller/products/${id}/${active ? "activate" : "deactivate"}`), active ? E.PRODUCT_ACTIVATED : E.PRODUCT_DEACTIVATED, { product_id: id }),
     onSuccess: replace,
   });
 }
@@ -70,7 +72,7 @@ export function useSetActive() {
 export function useUpdateStock() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, stock }: { id: string; stock: number }) => api.patch<null>(`/seller/products/${id}/stock?stock=${stock}`),
+    mutationFn: ({ id, stock }: { id: string; stock: number }) => tracked(api.patch<null>(`/seller/products/${id}/stock?stock=${stock}`), E.PRODUCT_STOCK_UPDATED, { product_id: id, new_stock: stock }),
     onSuccess: (_, { id, stock }) => {
       client.setQueryData<Pages>(productKeys.mine, (data) =>
         data
@@ -97,18 +99,42 @@ export interface SaveInput {
   removeMediaIds: string[];
 }
 
+/** The piece was saved, but some of its new media did not make it. */
+export class PartialSaveError extends Error {
+  constructor(
+    readonly productId: string,
+    readonly missing: number,
+  ) {
+    super("partial save");
+  }
+}
+
 /**
  * Create or edit, as the app's upload orchestrator does it: on edit, queued photo deletions go
- * first, then the details and any new media in one multipart request. Every save goes back to
- * review on the backend.
+ * first, then the details and the new media. Media go in groups that each fit one request
+ * (Vercel's body limit), the first with the create or edit and the rest as follow-up edits that
+ * add to the piece. Every save goes back to review on the backend.
  */
 export function useSaveProduct() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, body, files, removeMediaIds }: SaveInput) => {
-      if (!id) return upload<Product>("/seller/products", body, files, { fileField: "images" });
-      for (const mediaId of removeMediaIds) await api.delete<null>(`/seller/products/${id}/images/${mediaId}`);
-      return upload<Product>(`/seller/products/${id}`, body, files, { fileField: "images", method: "PUT" });
+      const [first = [], ...rest] = uploadBatches(files);
+      let saved: Product;
+      if (!id) saved = await tracked(upload<Product>("/seller/products", body, first, { fileField: "images" }), E.PRODUCT_CREATION_SUCCESS, (p) => ({ product_id: p?.id }));
+      else {
+        for (const mediaId of removeMediaIds) await api.delete<null>(`/seller/products/${id}/images/${mediaId}`);
+        saved = await tracked(upload<Product>(`/seller/products/${id}`, body, first, { fileField: "images", method: "PUT" }), E.PRODUCT_RESUBMITTED, { product_id: id });
+      }
+      const productId = saved?.id ?? id!;
+      for (let i = 0; i < rest.length; i++) {
+        try {
+          saved = await upload<Product>(`/seller/products/${productId}`, body, rest[i]!, { fileField: "images", method: "PUT" });
+        } catch {
+          throw new PartialSaveError(productId, rest.slice(i).reduce((n, batch) => n + batch.length, 0));
+        }
+      }
+      return saved;
     },
     onSettled: () => client.invalidateQueries({ queryKey: productKeys.mine }),
   });

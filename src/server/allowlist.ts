@@ -79,6 +79,9 @@ const rules: Array<[string, RegExp]> = [
   // Notifications (the proxy forces audience=SELLER on these)
   ["GET", /^\/notifications(\/unread-count)?$/],
   ["PATCH", new RegExp(`^/notifications/(${ID}/read|read-all)$`)],
+  // This browser's push registration (web push through Firebase Cloud Messaging)
+  ["POST", /^\/notifications\/device-token$/],
+  ["DELETE", /^\/notifications\/device-token$/],
 
   // Shared reference data
   ["GET", /^\/categories(\/tree)?$/],

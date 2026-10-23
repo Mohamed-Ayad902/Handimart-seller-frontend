@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { authApi } from "@/lib/client/api";
 import type { Seller } from "@/lib/types";
+import { E, track } from "@/lib/observability/analytics";
+import { disablePush } from "@/lib/observability/push";
 
 export const SELLER_KEY = ["seller", "me"] as const;
 
@@ -32,7 +34,12 @@ export function useLogout() {
   const client = useQueryClient();
   const router = useRouter();
   return useMutation({
-    mutationFn: () => authApi.logout(),
+    mutationFn: async () => {
+      track(E.LOGOUT);
+      // This browser stops getting the seller's pushes before the session (and its token) goes.
+      await disablePush();
+      return authApi.logout();
+    },
     // Whatever the backend answered, this browser's session cookies are cleared by the route.
     onSettled: () => {
       client.clear();

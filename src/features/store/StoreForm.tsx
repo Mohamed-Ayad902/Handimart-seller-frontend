@@ -54,7 +54,7 @@ const SERVER_FIELDS: Record<string, Field> = { name: "name", description: "descr
  * Store details: editing them from the dashboard, or filling them in as a registration step
  * (`register`), where the same parts go to `auth/seller/store-info` and the logo is required.
  */
-export function StoreForm({ register }: { register?: { onSaved: (seller: Seller) => void } } = {}) {
+export function StoreForm({ register }: { register?: { onSaved: (seller: Seller) => void; hint?: string } } = {}) {
   const seller = useSeller();
   if (seller.isPending)
     return (
@@ -75,7 +75,7 @@ interface Picked {
   preview: string;
 }
 
-function Form({ seller, register }: { seller: Seller; register?: { onSaved: (seller: Seller) => void } }) {
+function Form({ seller, register }: { seller: Seller; register?: { onSaved: (seller: Seller) => void; hint?: string } }) {
   const store = seller.store ?? NO_STORE;
   const router = useRouter();
   const toast = useToast();
@@ -323,7 +323,7 @@ function Form({ seller, register }: { seller: Seller; register?: { onSaved: (sel
           ) : save.isPending ? (
             "بنحفظ بيانات المتجر..."
           ) : register ? (
-            "بعدها هنبعتلك كود على موبايلك تأكّد بيه الرقم."
+            (register.hint ?? "بعدها هنبعتلك كود على موبايلك تأكّد بيه الرقم.")
           ) : (
             "التعديلات بتظهر للعملاء على طول."
           )}
