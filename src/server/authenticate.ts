@@ -14,7 +14,14 @@ import { normalizeMedia } from "./media";
  */
 export async function authRoute(
   request: NextRequest,
-  { backendPath, purpose, limit, body, sessionFromReply }: { backendPath: string; purpose: string; limit: number; body: unknown; sessionFromReply: boolean },
+  {
+    backendPath,
+    purpose,
+    limit,
+    body,
+    sessionFromReply,
+    unauthorizedMessage,
+  }: { backendPath: string; purpose: string; limit: number; body: unknown; sessionFromReply: boolean; unauthorizedMessage?: string },
 ) {
   if (!isSameOrigin(request)) return fail(403, MSG.badOrigin, "BAD_ORIGIN");
   const ip = clientIp(request);
@@ -30,6 +37,8 @@ export async function authRoute(
   const envelope = reply.body as { success?: boolean; message?: string; data?: Record<string, unknown> | null } | null;
 
   if (reply.status >= 400 || !envelope?.success) {
+    // Spring Security answers a wrong phone or password with its own English "Bad credentials".
+    if (reply.status === 401 && envelope?.message === "Bad credentials" && unauthorizedMessage) return fail(401, unauthorizedMessage, "BAD_CREDENTIALS");
     return NextResponse.json(
       { success: false, message: envelope?.message ?? MSG.generic, data: envelope?.data ?? null },
       { status: reply.status >= 400 ? reply.status : 400 },

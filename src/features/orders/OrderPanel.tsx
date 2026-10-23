@@ -130,27 +130,31 @@ function Detail({ order, onClose }: { order: SellerOrder; onClose: () => void })
 
         <h3 className="mt-7 mb-2 text-subtitle font-extrabold">عناصر الطلب</h3>
         <ul className="flex flex-col gap-3">
-          {order.items.map((item, i) => (
-            <li key={`${item.productName}-${i}`} className="rounded-image border border-line bg-surface p-4">
-              <div className="flex items-start justify-between gap-3">
-                <p className="font-bold">{item.productName}</p>
-                <p className="shrink-0 font-extrabold">{formatPrice(item.subtotal)}</p>
-              </div>
-              <p className="text-meta text-ink-3">
-                <bdi>
-                  {item.quantity} × {formatPrice(item.pricePerUnit)}
-                </bdi>
-              </p>
-              {item.selectedAttributes && <p className="mt-2 text-body-sm text-ink-2">{item.selectedAttributes}</p>}
-              {item.customizationNotes && (
-                <p className="mt-2 rounded-control bg-paper p-2.5 text-body-sm">
-                  <span className="font-bold">ملاحظة العميل: </span>
-                  {item.customizationNotes}
+          {order.items.map((item, i) => {
+            const attributes = shown(item.selectedAttributes);
+            const notes = shown(item.customizationNotes);
+            return (
+              <li key={`${item.productName}-${i}`} className="rounded-image border border-line bg-surface p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="font-bold">{item.productName}</p>
+                  <p className="shrink-0 font-extrabold">{formatPrice(item.subtotal)}</p>
+                </div>
+                <p className="text-meta text-ink-3">
+                  <bdi>
+                    {item.quantity} × {formatPrice(item.pricePerUnit)}
+                  </bdi>
                 </p>
-              )}
-              {item.customRequestId && <p className="mt-2 text-meta font-bold text-accent-text">معمول حسب طلب تفصيل</p>}
-            </li>
-          ))}
+                {attributes && <p className="mt-2 text-body-sm text-ink-2">{attributes}</p>}
+                {notes && (
+                  <p className="mt-2 rounded-control bg-paper p-2.5 text-body-sm">
+                    <span className="font-bold">ملاحظة العميل: </span>
+                    {notes}
+                  </p>
+                )}
+                {item.customRequestId && <p className="mt-2 text-meta font-bold text-accent-text">معمول حسب طلب تفصيل</p>}
+              </li>
+            );
+          })}
         </ul>
 
         <h3 className="mt-7 mb-2 text-subtitle font-extrabold">الحساب</h3>
@@ -181,6 +185,12 @@ function Detail({ order, onClose }: { order: SellerOrder; onClose: () => void })
       <OrderActions order={order} className="border-t border-divider bg-paper px-5 py-4 sm:px-7" />
     </>
   );
+}
+
+/** Older orders saved a missing buyer note as the word "null" in front of the options; drop it. */
+function shown(text: string | null) {
+  const t = text?.replace(/^null(\s|$)/, "").trim();
+  return t || null;
 }
 
 function Row({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
