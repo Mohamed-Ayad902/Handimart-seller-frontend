@@ -9,6 +9,7 @@ import { Button, ButtonLink, buttonClass } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Stitch } from "@/components/ui/Stitch";
 import { formatDate } from "@/lib/format";
+import { teamComment } from "@/lib/seller";
 import type { Seller } from "@/lib/types";
 import { REASONS } from "@/features/account-status/reasons";
 import { homeFor, useLogout, useSeller } from "@/features/auth/session";
@@ -107,6 +108,7 @@ export function StatusView() {
 
 function Status({ seller }: { seller: Seller }) {
   const c = copyFor(seller);
+  const note = teamComment(seller);
   return (
     <section className="page-enter mt-10 sm:mt-14" aria-labelledby="status-title">
       <Illustration name={c.art} className="w-44" />
@@ -128,10 +130,10 @@ function Status({ seller }: { seller: Seller }) {
         </p>
       )}
 
-      {seller.adminComment && (
+      {note && (
         <figure className="mt-6 rounded-image bg-surface p-4">
           <figcaption className="text-meta font-bold text-ink-2">ملاحظة الفريق</figcaption>
-          <blockquote className="mt-1 text-body whitespace-pre-line">{seller.adminComment}</blockquote>
+          <blockquote className="mt-1 text-body whitespace-pre-line">{note}</blockquote>
         </figure>
       )}
 

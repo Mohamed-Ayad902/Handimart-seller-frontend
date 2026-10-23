@@ -16,6 +16,7 @@ import { ApiError, api, authApi, upload } from "@/lib/client/api";
 import { normalizeDigits, normalizePhone } from "@/lib/phone";
 import type { Seller } from "@/lib/types";
 import { MSG, email, otp, phone, strongPassword, text } from "@/lib/validation";
+import { teamComment } from "@/lib/seller";
 import { AuthShell } from "@/features/auth/AuthShell";
 import { SELLER_KEY, homeFor, useLogout, useSeller } from "@/features/auth/session";
 import { MEDIA_MSG, UPLOAD_BUDGET, compressImage } from "@/features/products/media";
@@ -501,12 +502,13 @@ function DocumentsStep({ seller, fixing, onSaved, onSkip }: { seller: Seller; fi
 
 /** What the team asked for, kept above every step while the seller fixes the application. */
 function FixNotes({ seller }: { seller: Seller }) {
-  if (!seller.rejectionReason && !seller.adminComment) return null;
+  const note = teamComment(seller);
+  if (!seller.rejectionReason && !note) return null;
   return (
     <aside aria-label="ملاحظات فريق المراجعة" className="rounded-image-lg bg-error-container/70 p-4 sm:p-5">
       <p className="text-meta font-bold text-ink-2">محتاج يتعدل</p>
       {seller.rejectionReason && <p className="mt-1 text-body-sm font-semibold text-ink">{REASONS[seller.rejectionReason]}</p>}
-      {seller.adminComment && <blockquote className="mt-2 border-s-2 border-ink/30 ps-3 text-body-sm whitespace-pre-line text-ink">{seller.adminComment}</blockquote>}
+      {note && <blockquote className="mt-2 border-s-2 border-ink/30 ps-3 text-body-sm whitespace-pre-line text-ink">{note}</blockquote>}
     </aside>
   );
 }
